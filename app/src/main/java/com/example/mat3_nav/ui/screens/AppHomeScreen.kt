@@ -36,7 +36,10 @@ fun AppHomeScreen(
     val items = listOf("Songs", "Artists", "Playlists")
 
     val scope = rememberCoroutineScope()
-    val scaffoldState = rememberBottomSheetScaffoldState()
+    val scaffoldState = rememberBottomSheetScaffoldState().apply {
+        scope.launch { bottomSheetState.isVisible }
+    }
+    val testState = SheetValue.PartiallyExpanded
 
     Column(
         modifier = Modifier
@@ -48,20 +51,23 @@ fun AppHomeScreen(
             scaffoldState = scaffoldState,
             sheetPeekHeight = 128.dp,
             sheetContent = {
-                NavigationBar(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(84.dp),
-                ) {
-                    items.forEachIndexed { index, item ->
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
-                            label = { Text(item) },
-                            selected = selectedItem == index,
-                            onClick = { selectedItem = index }
-                        )
+                if (scaffoldState.bottomSheetState.currentValue == testState){
+                    NavigationBar(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(84.dp),
+                    ) {
+                        items.forEachIndexed { index, item ->
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                                label = { Text(item) },
+                                selected = selectedItem == index,
+                                onClick = { selectedItem = index }
+                            )
+                        }
                     }
                 }
+
                 Box(
                     Modifier
                         .fillMaxWidth()
