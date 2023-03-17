@@ -115,7 +115,7 @@ fun AppHomeScreen(
             BottomModal(
                 openBottomSheet = openBottomSheet,
                 onDismissRequest = { openBottomSheet = false },
-                bottomSheetState = bottomSheetState,
+//                bottomSheetState = bottomSheetState,
                 scope = scope
             )
             // Your screen content here
@@ -128,28 +128,36 @@ fun AppHomeScreen(
 fun BottomModal(
     openBottomSheet: Boolean,
     onDismissRequest: () -> Unit,
-    bottomSheetState: SheetState,
+//    bottomSheetState: SheetState,
     scope: CoroutineScope
 ) {
-    if (openBottomSheet) {
+//    if (openBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
-            sheetState = bottomSheetState,
+            sheetState = rememberModalBottomSheetState().apply {
+                scope.launch { SheetValue.PartiallyExpanded }
+            },
+
+
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Button(
-                    // Note: If you provide logic outside of onDismissRequest to remove the sheet,
-                    // you must additionally handle intended state cleanup, if any.
-                    onClick = {
-                        scope.launch { bottomSheetState.hide() }.invokeOnCompletion {
-                            if (!bottomSheetState.isVisible) {
-                                onDismissRequest.invoke()
-                            }
-                        }
-                    }
-                ) {
-                    Text("Hide Bottom Sheet")
-                }
+            Row(
+                Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+//                Button(
+//                    // Note: If you provide logic outside of onDismissRequest to remove the sheet,
+//                    // you must additionally handle intended state cleanup, if any.
+//                    onClick = {
+//                        scope.launch { bottomSheetState.hide() }.invokeOnCompletion {
+//                            if (!bottomSheetState.isVisible) {
+//                                onDismissRequest.invoke()
+//                            }
+//                        }
+//                    }
+//                ) {
+//                    Text("Hide Bottom Sheet")
+//                }
             }
             LazyColumn {
                 items(50) {
@@ -165,7 +173,7 @@ fun BottomModal(
                 }
             }
         }
-    }
+    //}
 }
 
 
