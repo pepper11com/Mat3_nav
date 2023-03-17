@@ -48,6 +48,20 @@ fun AppHomeScreen(
             scaffoldState = scaffoldState,
             sheetPeekHeight = 128.dp,
             sheetContent = {
+                NavigationBar(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(84.dp),
+                ) {
+                    items.forEachIndexed { index, item ->
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                            label = { Text(item) },
+                            selected = selectedItem == index,
+                            onClick = { selectedItem = index }
+                        )
+                    }
+                }
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -80,20 +94,6 @@ fun AppHomeScreen(
                     .zIndex(10f),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                NavigationBar(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(84.dp),
-                ) {
-                    items.forEachIndexed { index, item ->
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
-                            label = { Text(item) },
-                            selected = selectedItem == index,
-                            onClick = { selectedItem = index }
-                        )
-                    }
-                }
 
 
                 Column(
