@@ -1,5 +1,6 @@
 package com.example.mat3_nav.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -36,10 +37,7 @@ fun AppHomeScreen(
     val items = listOf("Songs", "Artists", "Playlists")
 
     val scope = rememberCoroutineScope()
-    val scaffoldState = rememberBottomSheetScaffoldState().apply {
-        scope.launch { bottomSheetState.isVisible }
-    }
-    val testState = SheetValue.PartiallyExpanded
+    val scaffoldState = rememberBottomSheetScaffoldState()
 
     Column(
         modifier = Modifier
@@ -48,29 +46,42 @@ fun AppHomeScreen(
 
 
         BottomSheetScaffold(
+            sheetContainerColor= MaterialTheme.colorScheme.onPrimary,
+            sheetContentColor= MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.onPrimary),
             scaffoldState = scaffoldState,
             sheetPeekHeight = 128.dp,
             sheetContent = {
-                if (scaffoldState.bottomSheetState.currentValue == testState){
+
                     NavigationBar(
+                        containerColor= MaterialTheme.colorScheme.onPrimary,
+
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(84.dp),
+                            .height(84.dp)
+                            .background(MaterialTheme.colorScheme.onPrimary)
+                            .padding(0.dp),
+
                     ) {
                         items.forEachIndexed { index, item ->
                             NavigationBarItem(
+                                modifier = Modifier
+                                    .padding(0.dp)
+                                    .background(MaterialTheme.colorScheme.onPrimary),
                                 icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
                                 label = { Text(item) },
                                 selected = selectedItem == index,
                                 onClick = { selectedItem = index }
                             )
                         }
-                    }
+
                 }
 
                 Box(
                     Modifier
                         .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.onPrimary)
                         .padding(bottom = 56.dp)
                         .height(128.dp),
                     contentAlignment = Alignment.Center
@@ -80,6 +91,7 @@ fun AppHomeScreen(
                 Column(
                     Modifier
                         .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.onPrimary)
                         .padding(64.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -129,43 +141,10 @@ fun AppHomeScreen(
         }
 
 
-//            DismissibleDrawerSheet(
-//                //    modifier: Modifier,
-//                //    drawerShape: Shape,
-//                //    drawerContainerColor: Color,
-//                //    drawerContentColor: Color,
-//                //    drawerTonalElevation: Dp,
-//                //    windowInsets: WindowInsets,
-//                //    content: @Composable() (ColumnScope.() -> Unit)
-//
-//            ){
-//                Text("Hello")
-//            }
-
-
     }
 
 
 }
-
-//    Scaffold(
-//        bottomBar = {
-//
-//
-//
-//
-//        },
-//        content = { innerPadding ->
-//            LazyColumn(
-//                modifier = Modifier
-//                    .padding(innerPadding)
-//            ) {
-//                items(100) {
-//                    Text("Item $it", modifier = Modifier.padding(16.dp))
-//                }
-//            }
-//        }
-//    )
 
 
 
