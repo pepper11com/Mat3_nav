@@ -39,27 +39,26 @@ fun AppHomeScreen(
         skipPartiallyExpanded = skipPartiallyExpanded
     )
 
+    var text by remember { mutableStateOf("") }
+
     Scaffold(
         bottomBar = {
             BottomAppBar(
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 tonalElevation = 8.dp,
-                contentPadding = PaddingValues(16.dp)
+                contentPadding = PaddingValues(16.dp),
+                modifier = Modifier.height(90.dp),
+                windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
             ) {
                 Box(
                     Modifier
                         .weight(1f)
-                        .padding(end = 16.dp)
+                        .fillMaxHeight()
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Search,
@@ -69,8 +68,10 @@ fun AppHomeScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             TextField(
-                                value = "",
-                                onValueChange = {},
+                                value = text,
+                                onValueChange = {
+                                    text = it
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 placeholder = { Text(text = "Search") },
                                 textStyle = MaterialTheme.typography.titleMedium,
@@ -83,7 +84,7 @@ fun AppHomeScreen(
                                 )
                             )
                         }
-                    }
+
                 }
 
                 Surface(
