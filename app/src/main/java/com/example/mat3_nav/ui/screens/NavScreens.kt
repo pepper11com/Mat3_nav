@@ -1,9 +1,15 @@
 package com.example.mat3_nav.ui.screens
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.ui.graphics.vector.ImageVector
+
 sealed class NavScreens(
-    val route: String
+    val route: String,
+    val icon: ImageVector? = null,
 ) {
-    object HomeScreen : NavScreens("home_screen")
-    object DetailScreen : NavScreens("detail_screen")
+    object HomeScreen : NavScreens("Home", Icons.Default.Home)
+    object DetailScreen : NavScreens("Details", Icons.Default.Favorite)
 }
 

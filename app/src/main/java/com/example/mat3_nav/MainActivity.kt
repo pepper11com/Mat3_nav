@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -81,70 +82,122 @@ fun NavBarApp() {
         skipPartiallyExpanded = skipPartiallyExpanded
     )
 
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    // icons to mimic drawer destinations
+    val screens = listOf(
+        NavScreens.HomeScreen,
+        NavScreens.DetailScreen
+    )
+    val selectedItem = remember { mutableStateOf(screens[0]) }
 
-    Scaffold(
-        topBar = {
-                TopAppBar(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(
-                            topStart = 0.dp,
-                            topEnd = 0.dp,
-                            bottomStart = 6.dp,
-                            bottomEnd = 6.dp
-                        )),
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                    scrollBehavior = scrollBehavior,
-                    title = {
-                        Text(
-                            "Simple TopAppBar",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                openBottomSheet = true
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(Modifier.height(12.dp))
+                screens.forEach { screen ->
+                    NavigationDrawerItem(
+                        icon = { screen.icon?.let { Icon(it, contentDescription = null) } },
+                        label = { Text(screen.route) },
+                        selected = screen == selectedItem.value,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            selectedItem.value = screen
+
+                            navController.navigate(screen.route) {
+                                // Pop up to the start destination of the graph to
+                                // avoid building up a large stack of destinations
+                                // on the back stack as users select items
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                // Avoid multiple copies of the same destination when
+                                // reselecting the same item
+                                launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
+                                restoreState = true
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Menu,
-                                contentDescription = "Localized description"
-                            )
-                            BottomDrawer(
-                                openBottomSheet = openBottomSheet,
-                                onDismissRequest = { openBottomSheet = false },
-                                bottomSheetState = bottomSheetState,
-                                scope = scope
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { /* doSomething() */ }) {
-                            Icon(
-                                imageVector = Icons.Filled.Settings,
-                                contentDescription = "Localized description"
-                            )
-                        }
-                    }
-                )
 
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
+            }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        bottomBar = {
-            BottomNav(navController)
+        content = {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(
+                                topStart = 0.dp,
+                                topEnd = 0.dp,
+                                bottomStart = 6.dp,
+                                bottomEnd = 6.dp
+                            )),
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                            actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        scrollBehavior = scrollBehavior,
+                        title = {
+                            Text(
+                                "Simple TopAppBar",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    scope.launch { drawerState.open() }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Menu,
+                                    contentDescription = "Localized description"
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    openBottomSheet = true
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreVert,
+                                    contentDescription = "Localized description"
+                                )
+                                BottomDrawer(
+                                    openBottomSheet = openBottomSheet,
+                                    onDismissRequest = { openBottomSheet = false },
+                                    bottomSheetState = bottomSheetState,
+                                    scope = scope
+                                )
+
+                            }
+                        }
+                    )
+
+                },
+                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                bottomBar = {
+                    BottomNav(navController)
+                }
+
+            ) { innerPadding ->
+
+                NavHostScreen(navController, innerPadding)
+            }
         }
+    )
 
-    ) { innerPadding ->
 
-        NavHostScreen(navController, innerPadding)
-    }
+
 }
 
 @Composable
