@@ -33,116 +33,57 @@ import kotlinx.coroutines.launch
 fun AppHomeScreen(
     navController: NavController
 ) {
-    var selectedItem by remember { mutableStateOf(0) }
-    val items = listOf("Songs", "Artists", "Playlists")
-
-    val scope = rememberCoroutineScope()
-    val scaffoldState = rememberBottomSheetScaffoldState()
-
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-
-
-        BottomSheetScaffold(
-            sheetContainerColor= MaterialTheme.colorScheme.onPrimary,
-            sheetContentColor= MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.onPrimary),
-            scaffoldState = scaffoldState,
-            sheetPeekHeight = 128.dp,
-            sheetContent = {
-
-                    NavigationBar(
-                        containerColor= MaterialTheme.colorScheme.onPrimary,
-
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(84.dp)
-                            .background(MaterialTheme.colorScheme.onPrimary)
-                            .padding(0.dp),
-
-                    ) {
-                        items.forEachIndexed { index, item ->
-                            NavigationBarItem(
-                                modifier = Modifier
-                                    .padding(0.dp)
-                                    .background(MaterialTheme.colorScheme.onPrimary),
-                                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
-                                label = { Text(item) },
-                                selected = selectedItem == index,
-                                onClick = { selectedItem = index }
-                            )
-                        }
-
-                }
-
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.onPrimary)
-                        .padding(bottom = 56.dp)
-                        .height(128.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Swipe up to expand sheet")
-                }
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.onPrimary)
-                        .padding(64.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Sheet content")
-                    Spacer(Modifier.height(20.dp))
-                    Button(
-                        onClick = {
-                            scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                        }
-                    ) {
-                        Text("Click to collapse sheet")
-                    }
-                }
-            }) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .zIndex(10f),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Home",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "This is the home screen",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = {
-                            scope.launch { scaffoldState.bottomSheetState.expand() }
-                        }
-                    ) {
-                        Text("Click to expand sheet")
-                    }
-                }
-            }
+        items(100) {
+            //display the item
+            Text(text = "Item $it")
         }
-
-
     }
 
+
+//    val drawerState = rememberDrawerState(DrawerValue.Closed)
+//    val scope = rememberCoroutineScope()
+//// icons to mimic drawer destinations
+//    val items = listOf(Icons.Default.Favorite, Icons.Default.Face, Icons.Default.Email)
+//    val selectedItem = remember { mutableStateOf(items[0]) }
+//    ModalNavigationDrawer(
+//        drawerState = drawerState,
+//        drawerContent = {
+//            ModalDrawerSheet {
+//                Spacer(Modifier.height(12.dp))
+//                items.forEach { item ->
+//                    NavigationDrawerItem(
+//                        icon = { Icon(item, contentDescription = null) },
+//                        label = { Text(item.name) },
+//                        selected = item == selectedItem.value,
+//                        onClick = {
+//                            scope.launch { drawerState.close() }
+//                            selectedItem.value = item
+//                        },
+//                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+//                    )
+//                }
+//            }
+//        },
+//        content = {
+//            Column(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .padding(16.dp),
+//                horizontalAlignment = Alignment.CenterHorizontally
+//            ) {
+//                Text(text = if (drawerState.isClosed) ">>> Swipe >>>" else "<<< Swipe <<<")
+//                Spacer(Modifier.height(20.dp))
+//                Button(onClick = { scope.launch { drawerState.open() } }) {
+//                    Text("Click to open")
+//                }
+//            }
+//        }
+//    )
 
 }
 
