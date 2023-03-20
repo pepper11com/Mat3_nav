@@ -3,41 +3,35 @@ package com.example.mat3_nav
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
-import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.mat3_nav.ui.screens.AppDetailScreen
-import com.example.mat3_nav.ui.screens.AppHomeScreen
+import com.example.mat3_nav.ui.screens.*
 import com.example.mat3_nav.ui.theme.Mat3_navTheme
-import com.example.mat3_nav.ui.screens.NavScreens
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -127,64 +121,76 @@ fun NavBarApp() {
         content = {
             Scaffold(
                 topBar = {
-                    TopAppBar(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(
-                                topStart = 0.dp,
-                                topEnd = 0.dp,
-                                bottomStart = 6.dp,
-                                bottomEnd = 6.dp
-                            )),
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                            actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                        scrollBehavior = scrollBehavior,
-                        title = {
-                            Text(
-                                "Simple TopAppBar",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = {
-                                    scope.launch { drawerState.open() }
+                    AnimatedVisibility(
+                        visible = selectedUser == -1,
+                        enter = fadeIn(),
+                        //fast animation for exit
+                        exit = fadeOut(animationSpec = TweenSpec(1))
+                    ) {
+                        TopAppBar(
+                            modifier = Modifier
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 0.dp,
+                                        topEnd = 0.dp,
+                                        bottomStart = 6.dp,
+                                        bottomEnd = 6.dp
+                                    )
+                                ),
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                                actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                            title = {
+                                Text(
+                                    "Simple TopAppBar",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            //todo: off
+//                            scrollBehavior = scrollBehavior,
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = {
+                                        scope.launch { drawerState.open() }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Menu,
+                                        contentDescription = "Localized description"
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Menu,
-                                    contentDescription = "Localized description"
-                                )
-                            }
-                        },
-                        actions = {
-                            IconButton(
-                                onClick = {
-                                    openBottomSheet = true
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.MoreVert,
-                                    contentDescription = "Localized description"
-                                )
-                                BottomDrawer(
-                                    openBottomSheet = openBottomSheet,
-                                    onDismissRequest = { openBottomSheet = false },
-                                    bottomSheetState = bottomSheetState,
-                                    scope = scope
-                                )
+                            },
+                            actions = {
+                                IconButton(
+                                    onClick = {
+                                        openBottomSheet = true
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreVert,
+                                        contentDescription = "Localized description"
+                                    )
+                                    BottomDrawer(
+                                        openBottomSheet = openBottomSheet,
+                                        onDismissRequest = { openBottomSheet = false },
+                                        bottomSheetState = bottomSheetState,
+                                        scope = scope
+                                    )
 
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+
 
                 },
-                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                //todo: off
+//                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 bottomBar = {
                     BottomNav(navController)
                 }
@@ -195,9 +201,6 @@ fun NavBarApp() {
             }
         }
     )
-
-
-
 }
 
 @Composable
@@ -289,12 +292,48 @@ private fun NavHostScreen(
         startDestination = NavScreens.HomeScreen.route,
         Modifier.padding(innerPadding)
     ) {
-        composable(NavScreens.HomeScreen.route) {
+        composable(
+           route = NavScreens.HomeScreen.route,
+
+            exitTransition = { ->
+                slideOutHorizontally(
+                    targetOffsetX = { -300 },
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+
+                    ) + fadeOut(animationSpec = tween(300))
+            },
+            popEnterTransition = {  ->
+                slideInHorizontally(
+                    initialOffsetX = { -300 },
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+
+                    ) + fadeIn(animationSpec = tween(300))
+            },
+
+        ) {
             AppHomeScreen(
                 navController = navController
             )
         }
-        composable(NavScreens.DetailScreen.route) {
+        composable(
+            route = NavScreens.DetailScreen.route,
+
+            enterTransition = { ->
+                slideInHorizontally(
+                    initialOffsetX = { 300 },
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+
+                    ) + fadeIn(animationSpec = tween(300))
+            },
+            popExitTransition = {  ->
+                slideOutHorizontally(
+                    targetOffsetX = { 300 },
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+
+                    ) + fadeOut(animationSpec = tween(300))
+            }
+
+        ) {
             AppDetailScreen(
                 navController = navController
             )

@@ -90,4 +90,8 @@ dependencies {
 
     //splash screen
     implementation 'androidx.core:core-splashscreen:1.0.0'
+
+    //cool animations
+    implementation("com.mxalbert.sharedelements:shared-elements:0.1.0-SNAPSHOT")
+
 }
