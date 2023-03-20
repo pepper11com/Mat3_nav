@@ -35,6 +35,7 @@ import com.example.mat3_nav.ui.theme.Mat3_navTheme
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import com.mxalbert.sharedelements.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -66,6 +67,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NavBarApp() {
     val navController = rememberAnimatedNavController()
+
+    val scope2 = LocalSharedElementsRootScope
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
@@ -120,71 +123,117 @@ fun NavBarApp() {
         },
         content = {
             Scaffold(
+
                 topBar = {
                     AnimatedVisibility(
-                        visible = selectedUser == -1,
-                        enter = fadeIn(),
+//                        visible = selectedUser == -1,
+                        visible = true,
+                        enter = fadeIn(animationSpec = TweenSpec(600)),
                         //fast animation for exit
-                        exit = fadeOut(animationSpec = TweenSpec(1))
+                        exit = fadeOut(animationSpec = TweenSpec(600))
                     ) {
-                        TopAppBar(
-                            modifier = Modifier
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = 0.dp,
-                                        topEnd = 0.dp,
-                                        bottomStart = 6.dp,
-                                        bottomEnd = 6.dp
-                                    )
-                                ),
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                                titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                                actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                            title = {
-                                Text(
-                                    "Simple TopAppBar",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            },
-                            //todo: off
-//                            scrollBehavior = scrollBehavior,
-                            navigationIcon = {
-                                IconButton(
-                                    onClick = {
-                                        scope.launch { drawerState.open() }
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Menu,
-                                        contentDescription = "Localized description"
-                                    )
-                                }
-                            },
-                            actions = {
-                                IconButton(
-                                    onClick = {
-                                        openBottomSheet = true
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.MoreVert,
-                                        contentDescription = "Localized description"
-                                    )
-                                    BottomDrawer(
-                                        openBottomSheet = openBottomSheet,
-                                        onDismissRequest = { openBottomSheet = false },
-                                        bottomSheetState = bottomSheetState,
-                                        scope = scope
-                                    )
+                        if (selectedUser == -1) {
 
+
+                            TopAppBar(
+                                modifier = Modifier
+                                    .clip(
+                                        RoundedCornerShape(
+                                            topStart = 0.dp,
+                                            topEnd = 0.dp,
+                                            bottomStart = 6.dp,
+                                            bottomEnd = 6.dp
+                                        )
+                                    ),
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                                title = {
+                                    Text(
+                                        "Simple TopAppBar",
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
+                                //todo: off
+//                            scrollBehavior = scrollBehavior,
+                                navigationIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            scope.launch { drawerState.open() }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Menu,
+                                            contentDescription = "Localized description"
+                                        )
+                                    }
+                                },
+                                actions = {
+                                    IconButton(
+                                        onClick = {
+                                            openBottomSheet = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.MoreVert,
+                                            contentDescription = "Localized description"
+                                        )
+                                        BottomDrawer(
+                                            openBottomSheet = openBottomSheet,
+                                            onDismissRequest = { openBottomSheet = false },
+                                            bottomSheetState = bottomSheetState,
+                                            scope = scope
+                                        )
+
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        } else {
+                            TopAppBar(
+                                modifier = Modifier
+                                    .clip(
+                                        RoundedCornerShape(
+                                            topStart = 0.dp,
+                                            topEnd = 0.dp,
+                                            bottomStart = 6.dp,
+                                            bottomEnd = 6.dp
+                                        )
+                                    ),
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                                title = {
+                                    Text(
+                                        "Simple TopAppBar",
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
+                                //one back button
+                                navigationIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            selectedUser = -1
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.ArrowBack,
+                                            contentDescription = "Localized description"
+                                        )
+                                    }
+                                },
+                            )
+                        }
+
                     }
 
 
