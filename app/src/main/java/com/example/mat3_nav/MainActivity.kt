@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
@@ -32,12 +33,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mat3_nav.ui.screens.*
 import com.example.mat3_nav.ui.theme.Mat3_navTheme
+import com.example.mat3_nav.viewmodel.MainViewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.mxalbert.sharedelements.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -65,7 +68,9 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun NavBarApp() {
+fun NavBarApp(
+    viewModel: MainViewModel = viewModel()
+) {
     val navController = rememberAnimatedNavController()
 
     val scope2 = LocalSharedElementsRootScope
@@ -86,6 +91,16 @@ fun NavBarApp() {
         NavScreens.DetailScreen
     )
     val selectedItem = remember { mutableStateOf(screens[0]) }
+
+    val scrollPosition = viewModel.scrollPosition
+    val listState = rememberLazyGridState(scrollPosition)
+
+    LaunchedEffect(listState) {
+        val previousIndex = (previousSelectedUser).coerceAtLeast(0)
+        if (!listState.layoutInfo.visibleItemsInfo.any { it.index == previousIndex }) {
+            listState.scrollToItem(previousIndex)
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -133,8 +148,6 @@ fun NavBarApp() {
                         exit = fadeOut(animationSpec = TweenSpec(600))
                     ) {
                         if (selectedUser == -1) {
-
-
                             TopAppBar(
                                 modifier = Modifier
                                     .clip(
@@ -222,7 +235,10 @@ fun NavBarApp() {
                                 navigationIcon = {
                                     IconButton(
                                         onClick = {
-                                            selectedUser = -1
+                                            if (selectedUser != -1) {
+                                                previousSelectedUser = selectedUser
+                                                selectedUser = -1
+                                            }
                                         }
                                     ) {
                                         Icon(
@@ -245,7 +261,6 @@ fun NavBarApp() {
                 }
 
             ) { innerPadding ->
-
                 NavHostScreen(navController, innerPadding)
             }
         }
@@ -335,6 +350,7 @@ fun BottomNav(navController: NavController) {
 private fun NavHostScreen(
     navController: NavHostController,
     innerPadding: PaddingValues,
+    viewModel: MainViewModel = viewModel()
 ) {
     AnimatedNavHost(
         navController,
@@ -361,7 +377,8 @@ private fun NavHostScreen(
 
         ) {
             AppHomeScreen(
-                navController = navController
+                navController = navController,
+                viewModel = viewModel
             )
         }
         composable(

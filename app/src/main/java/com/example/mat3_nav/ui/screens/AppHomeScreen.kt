@@ -43,24 +43,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import com.example.mat3_nav.R
+import com.example.mat3_nav.viewmodel.MainViewModel
 import com.mxalbert.sharedelements.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 
 @Composable
 fun AppHomeScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: MainViewModel = viewModel(),
 ) {
-    UserCardsRoot()
+    UserCardsRoot(
+        viewModel = viewModel
+    )
 }
 
 var selectedUser: Int by mutableStateOf(-1)
-private var previousSelectedUser: Int = -1
+var previousSelectedUser: Int = -1
 @Composable
-fun UserCardsRoot() {
+fun UserCardsRoot(
+    viewModel: MainViewModel
+) {
     SharedElementsRoot {
         val user = selectedUser
         val gridState = rememberLazyGridState()
+//        val scrollPosition = rememberLazyGridState(viewModel.scrollPosition)
 
         BackHandler(enabled = user >= 0) {
             changeUser(-1)
@@ -68,7 +77,8 @@ fun UserCardsRoot() {
 
         DelayExit(visible = user < 0) {
             UserCardsScreen(
-                gridState
+                listState1 = gridState,
+                viewModel = viewModel
             )
         }
 
@@ -82,19 +92,27 @@ fun UserCardsRoot() {
 }
 
 @Composable
-private fun UserCardsScreen(listState: LazyGridState) {
-    LaunchedEffect(listState) {
+private fun UserCardsScreen(
+    listState1: LazyGridState,
+    viewModel: MainViewModel
+) {
+    val listState = rememberLazyGridState(viewModel.scrollPosition)
+
+    LaunchedEffect(listState1) {
         val previousIndex = (previousSelectedUser).coerceAtLeast(0)
         if (!listState.layoutInfo.visibleItemsInfo.any { it.index == previousIndex }) {
+            viewModel.onScrollPositionChanged(previousIndex)
             listState.scrollToItem(previousIndex)
+            println("Scrolling to $previousIndex")
+            println("Scrolling to viewModel.scrollPosition: ${viewModel.scrollPosition}")
         }
     }
 
     val scope = LocalSharedElementsRootScope.current!!
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        state = listState,
-        contentPadding = PaddingValues(4.dp)
+        state = listState1,
+        contentPadding = PaddingValues(4.dp),
     ) {
         itemsIndexed(users) { i, user ->
             Box(
@@ -291,7 +309,7 @@ private fun UserDetailsScreen(user: User) {
     }
 }
 
-private fun SharedElementsRootScope.changeUser(user: Int) {
+fun SharedElementsRootScope.changeUser(user: Int) {
     val currentUser = selectedUser
     if (currentUser != user) {
         val targetUser = if (user >= 0) user else currentUser
