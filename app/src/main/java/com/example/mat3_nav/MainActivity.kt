@@ -138,16 +138,21 @@ fun NavBarApp(
         },
         content = {
             Scaffold(
+                //todo animate this
+                // AnimatedVisibility(
+                //            visible = selectedUser == -1,
+                //            enter = fadeIn(animationSpec = TweenSpec(16000)),
+                //            exit = fadeOut(animationSpec = TweenSpec(16000))
+                //        ) { },
+
+                // animate the 3 dots away and animate the back arrow in when the user is selected,
+                // also animate the RoundedCornerShape of the topBar to be 0 on the left and right
+                // side when the user is selected
+                // and animate the RoundedCornerShape of the topBar to be 6 on the left and right
+                // side when the user is not selected
 
                 topBar = {
-                    AnimatedVisibility(
-//                        visible = selectedUser == -1,
-                        visible = true,
-                        enter = fadeIn(animationSpec = TweenSpec(600)),
-                        //fast animation for exit
-                        exit = fadeOut(animationSpec = TweenSpec(600))
-                    ) {
-                        if (selectedUser == -1) {
+                    if (selectedUser == -1) {
                             TopAppBar(
                                 modifier = Modifier
                                     .clip(
@@ -159,11 +164,11 @@ fun NavBarApp(
                                         )
                                     ),
                                 colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    containerColor = MaterialTheme.colorScheme.secondary,
+                                    scrolledContainerColor = MaterialTheme.colorScheme.secondary,
+                                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                                    actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
                                 ),
                                 title = {
                                     Text(
@@ -206,23 +211,25 @@ fun NavBarApp(
                                     }
                                 }
                             )
-                        } else {
+
+                    } else {
+
                             TopAppBar(
                                 modifier = Modifier
                                     .clip(
                                         RoundedCornerShape(
                                             topStart = 0.dp,
                                             topEnd = 0.dp,
-                                            bottomStart = 6.dp,
-                                            bottomEnd = 6.dp
+                                            bottomStart = 0.dp,
+                                            bottomEnd = 0.dp
                                         )
                                     ),
                                 colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    containerColor = MaterialTheme.colorScheme.secondary,
+                                    scrolledContainerColor = MaterialTheme.colorScheme.secondary,
+                                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                                    actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
                                 ),
                                 title = {
                                     Text(
@@ -248,11 +255,8 @@ fun NavBarApp(
                                     }
                                 },
                             )
-                        }
 
                     }
-
-
                 },
                 //todo: off
 //                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -274,7 +278,7 @@ fun BottomDrawer(
     onDismissRequest: () -> Unit,
     bottomSheetState: SheetState,
     scope: CoroutineScope
-){
+) {
     if (openBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
@@ -287,7 +291,7 @@ fun BottomDrawer(
                     onClick = {
                         scope.launch { bottomSheetState.hide() }.invokeOnCompletion {
                             if (!bottomSheetState.isVisible) {
-                               onDismissRequest()
+                                onDismissRequest()
                             }
                         }
                     }
@@ -314,7 +318,20 @@ fun BottomDrawer(
 
 @Composable
 fun BottomNav(navController: NavController) {
-    BottomNavigation {
+    BottomNavigation(
+        backgroundColor = MaterialTheme.colorScheme.secondary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
+        elevation = 0.dp,
+        modifier = Modifier
+            .clip(
+                RoundedCornerShape(
+                    topStart = if (selectedUser == -1) 6.dp else 0.dp,
+                    topEnd = if (selectedUser == -1) 6.dp else 0.dp,
+                    bottomStart = 0.dp,
+                    bottomEnd = 0.dp
+                )
+            )
+    ) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
         val screens = listOf(
@@ -323,7 +340,13 @@ fun BottomNav(navController: NavController) {
         )
         screens.forEach { screen ->
             BottomNavigationItem(
-                icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
+                icon = {
+                    Icon(
+                        Icons.Filled.Favorite,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondary
+                    )
+                },
                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                 onClick = {
                     navController.navigate(screen.route) {
@@ -358,7 +381,7 @@ private fun NavHostScreen(
         Modifier.padding(innerPadding)
     ) {
         composable(
-           route = NavScreens.HomeScreen.route,
+            route = NavScreens.HomeScreen.route,
 
             exitTransition = { ->
                 slideOutHorizontally(
@@ -367,7 +390,7 @@ private fun NavHostScreen(
 
                     ) + fadeOut(animationSpec = tween(300))
             },
-            popEnterTransition = {  ->
+            popEnterTransition = { ->
                 slideInHorizontally(
                     initialOffsetX = { -300 },
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
@@ -375,7 +398,7 @@ private fun NavHostScreen(
                     ) + fadeIn(animationSpec = tween(300))
             },
 
-        ) {
+            ) {
             AppHomeScreen(
                 navController = navController,
                 viewModel = viewModel
@@ -391,7 +414,7 @@ private fun NavHostScreen(
 
                     ) + fadeIn(animationSpec = tween(300))
             },
-            popExitTransition = {  ->
+            popExitTransition = { ->
                 slideOutHorizontally(
                     targetOffsetX = { 300 },
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
