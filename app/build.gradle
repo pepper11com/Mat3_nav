@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+
+    id 'com.google.gms.google-services'
 }
 
 android {
@@ -88,10 +90,16 @@ dependencies {
     implementation 'androidx.compose.material3:material3:1.1.0-alpha08'
     implementation 'com.google.accompanist:accompanist-systemuicontroller:0.27.0'
 
-    //splash screen
-    implementation 'androidx.core:core-splashscreen:1.0.0'
-
     //cool animations
     implementation("com.mxalbert.sharedelements:shared-elements:0.1.0-SNAPSHOT")
 
+    //firebase
+    implementation 'com.google.firebase:firebase-firestore-ktx:24.4.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4'
+
+    //splash screen
+    implementation 'androidx.core:core-splashscreen:1.0.0'
+
+    //password hashing
+    implementation 'at.favre.lib:bcrypt:0.9.0'
 }

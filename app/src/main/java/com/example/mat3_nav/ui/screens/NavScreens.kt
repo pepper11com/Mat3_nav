@@ -11,5 +11,8 @@ sealed class NavScreens(
 ) {
     object HomeScreen : NavScreens("Home", Icons.Default.Home)
     object DetailScreen : NavScreens("Details", Icons.Default.Favorite)
+
+    object CreateProfileScreen : NavScreens("create_profile_screen")
+    object LoginScreen : NavScreens("profile_screen")
 }
 

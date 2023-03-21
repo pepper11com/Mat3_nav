@@ -1,6 +1,10 @@
 package com.example.mat3_nav
 
+import android.app.Application
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
@@ -20,9 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -43,33 +49,34 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //todo change splash screen
+        installSplashScreen()
         val isDarkTheme = resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         setContent {
+            val hasCreatedProfile = LocalContext.current.getHasCreatedProfile()
+
             Mat3_navTheme(
                 darkTheme = isDarkTheme
             ) {
 //                WindowCompat.setDecorFitsSystemWindows(window, false)
 //                window.statusBarColor = Color.Transparent.toArgb()
-                NavBarApp()
+                NavBarApp(application = this@MainActivity.application, hasCreatedProfile = hasCreatedProfile)
             }
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun NavBarApp(
-    viewModel: MainViewModel = viewModel()
+    application: Application,
+    hasCreatedProfile: Boolean,
+    viewModel: MainViewModel = viewModel(factory = MainViewModelFactory(application)),
 ) {
     val navController = rememberAnimatedNavController()
-
     val scope2 = LocalSharedElementsRootScope
-
-
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 //        TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-
 
     var openBottomSheet by rememberSaveable { mutableStateOf(false) }
     val skipPartiallyExpanded by remember { mutableStateOf(false) }
@@ -77,18 +84,14 @@ fun NavBarApp(
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = skipPartiallyExpanded
     )
-
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val screens = listOf(
         NavScreens.HomeScreen,
-        NavScreens.DetailScreen
+        NavScreens.DetailScreen,
     )
     val selectedItem = remember { mutableStateOf(screens[0]) }
-
     val scrollPosition = viewModel.scrollPosition
     val listState = rememberLazyGridState(scrollPosition)
-
-
 
     LaunchedEffect(listState) {
         val previousIndex = (previousSelectedUser).coerceAtLeast(0)
@@ -124,15 +127,12 @@ fun NavBarApp(
                 }
             }
         },
-
         content = {
             val selectedUserIsNotSelected = selectedUser == -1
-
             val containerColor by animateColorAsState(
                 targetValue = if (selectedUserIsNotSelected) MaterialTheme.colorScheme.secondary else Color.Transparent,
                 animationSpec = tween(25)
             )
-
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -236,22 +236,20 @@ fun NavBarApp(
                         }
                     }
                 )
-
-                NavHostScreen(navController)
-
+                NavHostScreen(
+                    navController,
+                    hasCreatedProfile,
+                    viewModel
+                )
                 BottomNav(
                     navController,
                     Modifier
                         .align(Alignment.BottomCenter)
                 )
             }
-
         }
     )
-
 }
-
-
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun BottomDrawer(
@@ -351,16 +349,18 @@ fun BottomNav(
         }
     }
 }
-
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun NavHostScreen(
     navController: NavHostController,
-    viewModel: MainViewModel = viewModel(),
+    hasCreatedProfile: Boolean,
+    viewModel: MainViewModel
 ) {
+    val startDestination = if (hasCreatedProfile) NavScreens.HomeScreen.route else NavScreens.CreateProfileScreen.route
+
     AnimatedNavHost(
         navController,
-        startDestination = NavScreens.HomeScreen.route,
+        startDestination = startDestination,
     ) {
         composable(
             route = NavScreens.HomeScreen.route,
@@ -397,7 +397,6 @@ private fun NavHostScreen(
                         durationMillis = 300,
                         easing = FastOutSlowInEasing
                     ),
-
                     ) + fadeIn(animationSpec = tween(300))
             },
             popExitTransition = { ->
@@ -414,6 +413,81 @@ private fun NavHostScreen(
                 navController = navController
             )
         }
+
+        composable(
+            route = NavScreens.CreateProfileScreen.route,
+            enterTransition = { ->
+                slideInHorizontally(
+                    initialOffsetX = { 300 },
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                    ) + fadeIn(animationSpec = tween(300))
+            },
+            popExitTransition = { ->
+                slideOutHorizontally(
+                    targetOffsetX = { 300 },
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                ) + fadeOut(animationSpec = tween(300))
+            }
+        ) {
+            CreateProfileScreen(
+                navController = navController,
+                viewModel = viewModel
+            )
+        }
+
+        composable(
+            route = NavScreens.LoginScreen.route,
+            enterTransition = { ->
+                slideInHorizontally(
+                    initialOffsetX = { 300 },
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                    ) + fadeIn(animationSpec = tween(300))
+            },
+            popExitTransition = { ->
+                slideOutHorizontally(
+                    targetOffsetX = { 300 },
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                ) + fadeOut(animationSpec = tween(300))
+            }
+        ) {
+            LoginScreen(
+                navController = navController,
+                //  onLoginSuccess: (userId: String) -> Unit
+                viewModel = viewModel,
+                onLoginSuccess = {
+                    navController.navigate(NavScreens.HomeScreen.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
     }
 }
+
+
+fun Context.getHasCreatedProfile(): Boolean {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    return sharedPrefs.getBoolean("has_created_profile", false)
+}
+fun Context.setHasCreatedProfile(value: Boolean) {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    sharedPrefs.edit().putBoolean("has_created_profile", value).apply()
+}
+
 
