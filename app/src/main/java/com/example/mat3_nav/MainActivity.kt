@@ -16,14 +16,13 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -57,6 +56,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun NavBarApp(
@@ -67,7 +67,7 @@ fun NavBarApp(
     val scope2 = LocalSharedElementsRootScope
 
 
-    val scrollBehavior =  TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 //        TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
 
@@ -124,110 +124,132 @@ fun NavBarApp(
                 }
             }
         },
-        content = {
-            Scaffold(
-                topBar = {
-                    val selectedUserIsNotSelected = selectedUser == -1
-                    val cornerAnimation by animateDpAsState(
-                        targetValue = if (selectedUserIsNotSelected) 6.dp else 0.dp
-                    )
 
-                    TopAppBar(
-                        modifier = Modifier
-                            .clip(
-                                RoundedCornerShape(
-                                    topStart = 0.dp,
-                                    topEnd = 0.dp,
-                                    bottomStart = cornerAnimation,
-                                    bottomEnd = cornerAnimation
-                                )
-                            ),
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            scrolledContainerColor = MaterialTheme.colorScheme.secondary,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
-                            titleContentColor = MaterialTheme.colorScheme.onSecondary,
-                            actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
-                        ),
-                        title = {
-                            Text(
-                                "Simple TopAppBar",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+        content = {
+            val selectedUserIsNotSelected = selectedUser == -1
+
+            val containerColor by animateColorAsState(
+                targetValue = if (selectedUserIsNotSelected) MaterialTheme.colorScheme.secondary else Color.Transparent,
+                animationSpec = tween(25)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                TopAppBar(
+                    modifier = Modifier
+                        .zIndex(10f)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = 0.dp,
+                                topEnd = 0.dp,
+                                bottomStart = 16.dp,
+                                bottomEnd = 16.dp
                             )
-                        },
-                        scrollBehavior = scrollBehavior,
-                        navigationIcon = {
-                            AnimatedContent(
-                                targetState = selectedUserIsNotSelected,
-                                transitionSpec = {
-                                    fadeIn(animationSpec = TweenSpec(500)) with
-                                            fadeOut(animationSpec = TweenSpec(500))
-                                }
-                            ) { isNotSelected ->
-                                if (isNotSelected) {
-                                    IconButton(
-                                        onClick = { scope.launch { drawerState.open() } }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Menu,
-                                            contentDescription = "Localized description"
-                                        )
-                                    }
-                                } else {
-                                    IconButton(
-                                        onClick = {
-                                            if (selectedUser != -1) {
-                                                previousSelectedUser = selectedUser
-                                                selectedUser = -1
-                                            }
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.ArrowBack,
-                                            contentDescription = "Localized description"
-                                        )
-                                    }
-                                }
+                        ),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = containerColor,
+                        scrolledContainerColor = containerColor,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                        titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                    ),
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        AnimatedContent(
+                            targetState = selectedUserIsNotSelected,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(25)) with fadeOut(animationSpec = tween(25))
                             }
-                        },
-                        actions = {
-                            AnimatedVisibility(
-                                visible = selectedUserIsNotSelected,
-                                enter = fadeIn(animationSpec = TweenSpec(500)),
-                                exit = fadeOut(animationSpec = TweenSpec(500))
-                            ) {
+                        ) { isNotSelected ->
+                            if (isNotSelected) {
+                                IconButton(
+                                    onClick = { scope.launch { drawerState.open() } }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Menu,
+                                        contentDescription = "Localized description"
+                                    )
+                                }
+                            } else {
                                 IconButton(
                                     onClick = {
-                                        openBottomSheet = true
+                                        if (selectedUser != -1) {
+                                            previousSelectedUser = selectedUser
+                                            selectedUser = -1
+                                        }
                                     }
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Filled.MoreVert,
+                                        imageVector = Icons.Filled.ArrowBack,
                                         contentDescription = "Localized description"
-                                    )
-                                    BottomDrawer(
-                                        openBottomSheet = openBottomSheet,
-                                        onDismissRequest = { openBottomSheet = false },
-                                        bottomSheetState = bottomSheetState,
-                                        scope = scope
                                     )
                                 }
                             }
                         }
-                    )
-                },
-                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                bottomBar = {
-                    BottomNav(navController)
-                }
-            ) { innerPadding ->
-                NavHostScreen(navController, innerPadding)
+                    },
+                    title = {
+                        AnimatedContent(
+                            targetState = selectedUserIsNotSelected,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(25)) with fadeOut(animationSpec = tween(25))
+                            }
+                        ) { isNotSelected ->
+                            if (isNotSelected) {
+                                Text(
+                                    "Simple TopAppBar",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            } else {
+                                Text(
+                                    "",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    },
+                    actions = {
+                        AnimatedVisibility(
+                            visible = selectedUserIsNotSelected,
+                            enter = fadeIn(animationSpec = tween(25)),
+                            exit = fadeOut(animationSpec = tween(25))
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    openBottomSheet = true
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreVert,
+                                    contentDescription = "Localized description"
+                                )
+                                BottomDrawer(
+                                    openBottomSheet = openBottomSheet,
+                                    onDismissRequest = { openBottomSheet = false },
+                                    bottomSheetState = bottomSheetState,
+                                    scope = scope
+                                )
+                            }
+                        }
+                    }
+                )
+
+                NavHostScreen(navController)
+
+                BottomNav(
+                    navController,
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                )
             }
+
         }
     )
-}
 
+}
 
 
 @Composable
@@ -274,17 +296,21 @@ fun BottomDrawer(
         }
     }
 }
+
 @Composable
-fun BottomNav(navController: NavController) {
+fun BottomNav(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     BottomNavigation(
         backgroundColor = MaterialTheme.colorScheme.secondary,
         contentColor = MaterialTheme.colorScheme.onSecondary,
         elevation = 0.dp,
-        modifier = Modifier
+        modifier = modifier
             .clip(
                 RoundedCornerShape(
-                    topStart = if (selectedUser == -1) 6.dp else 0.dp,
-                    topEnd = if (selectedUser == -1) 6.dp else 0.dp,
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
                     bottomStart = 0.dp,
                     bottomEnd = 0.dp
                 )
@@ -325,33 +351,38 @@ fun BottomNav(navController: NavController) {
         }
     }
 }
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun NavHostScreen(
     navController: NavHostController,
-    innerPadding: PaddingValues,
     viewModel: MainViewModel = viewModel(),
 ) {
     AnimatedNavHost(
         navController,
         startDestination = NavScreens.HomeScreen.route,
-        Modifier.padding(innerPadding)
     ) {
         composable(
             route = NavScreens.HomeScreen.route,
             exitTransition = { ->
                 slideOutHorizontally(
                     targetOffsetX = { -300 },
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                    ) + fadeOut(animationSpec = tween(300))
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                ) + fadeOut(animationSpec = tween(300))
             },
             popEnterTransition = { ->
                 slideInHorizontally(
                     initialOffsetX = { -300 },
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                    ) + fadeIn(animationSpec = tween(300))
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                ) + fadeIn(animationSpec = tween(300))
             },
-            ) {
+        ) {
             AppHomeScreen(
                 navController = navController,
                 viewModel = viewModel
@@ -362,15 +393,21 @@ private fun NavHostScreen(
             enterTransition = { ->
                 slideInHorizontally(
                     initialOffsetX = { 300 },
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
 
                     ) + fadeIn(animationSpec = tween(300))
             },
             popExitTransition = { ->
                 slideOutHorizontally(
                     targetOffsetX = { 300 },
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                    ) + fadeOut(animationSpec = tween(300))
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                ) + fadeOut(animationSpec = tween(300))
             }
         ) {
             AppDetailScreen(

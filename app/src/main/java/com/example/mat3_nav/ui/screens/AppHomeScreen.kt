@@ -106,6 +106,9 @@ private fun UserCardsScreen(
         columns = GridCells.Fixed(2),
         state = listState1,
         contentPadding = PaddingValues(4.dp),
+        modifier = Modifier
+            .padding(top = 64.dp, bottom = 56.dp)
+
     ) {
         itemsIndexed(users) { i, user ->
             Box(
