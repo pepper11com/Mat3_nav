@@ -4,10 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.TweenSpec
-import androidx.compose.animation.core.animateOffsetAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -22,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,26 +44,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val isDarkTheme = resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
-
         setContent {
             Mat3_navTheme(
                 darkTheme = isDarkTheme
             ) {
-
 //                WindowCompat.setDecorFitsSystemWindows(window, false)
-//
 //                window.statusBarColor = Color.Transparent.toArgb()
-
                 NavBarApp()
-
             }
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun NavBarApp(
@@ -75,7 +66,10 @@ fun NavBarApp(
 
     val scope2 = LocalSharedElementsRootScope
 
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
+    val scrollBehavior =  TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+//        TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
 
     var openBottomSheet by rememberSaveable { mutableStateOf(false) }
     val skipPartiallyExpanded by remember { mutableStateOf(false) }
@@ -85,7 +79,6 @@ fun NavBarApp(
     )
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    // icons to mimic drawer destinations
     val screens = listOf(
         NavScreens.HomeScreen,
         NavScreens.DetailScreen
@@ -94,6 +87,8 @@ fun NavBarApp(
 
     val scrollPosition = viewModel.scrollPosition
     val listState = rememberLazyGridState(scrollPosition)
+
+
 
     LaunchedEffect(listState) {
         val previousIndex = (previousSelectedUser).coerceAtLeast(0)
@@ -117,19 +112,12 @@ fun NavBarApp(
                             selectedItem.value = screen
 
                             navController.navigate(screen.route) {
-                                // Pop up to the start destination of the graph to
-                                // avoid building up a large stack of destinations
-                                // on the back stack as users select items
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
-                                // Avoid multiple copies of the same destination when
-                                // reselecting the same item
                                 launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
                                 restoreState = true
                             }
-
                         },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
@@ -138,108 +126,55 @@ fun NavBarApp(
         },
         content = {
             Scaffold(
-                //todo animate this
-                // AnimatedVisibility(
-                //            visible = selectedUser == -1,
-                //            enter = fadeIn(animationSpec = TweenSpec(16000)),
-                //            exit = fadeOut(animationSpec = TweenSpec(16000))
-                //        ) { },
-
-                // animate the 3 dots away and animate the back arrow in when the user is selected,
-                // also animate the RoundedCornerShape of the topBar to be 0 on the left and right
-                // side when the user is selected
-                // and animate the RoundedCornerShape of the topBar to be 6 on the left and right
-                // side when the user is not selected
-
                 topBar = {
-                    if (selectedUser == -1) {
-                            TopAppBar(
-                                modifier = Modifier
-                                    .clip(
-                                        RoundedCornerShape(
-                                            topStart = 0.dp,
-                                            topEnd = 0.dp,
-                                            bottomStart = 6.dp,
-                                            bottomEnd = 6.dp
-                                        )
-                                    ),
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary,
-                                    scrolledContainerColor = MaterialTheme.colorScheme.secondary,
-                                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
-                                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
-                                    actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
-                                ),
-                                title = {
-                                    Text(
-                                        "Simple TopAppBar",
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                },
-                                //todo: off
-//                            scrollBehavior = scrollBehavior,
-                                navigationIcon = {
+                    val selectedUserIsNotSelected = selectedUser == -1
+                    val cornerAnimation by animateDpAsState(
+                        targetValue = if (selectedUserIsNotSelected) 6.dp else 0.dp
+                    )
+
+                    TopAppBar(
+                        modifier = Modifier
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = 0.dp,
+                                    topEnd = 0.dp,
+                                    bottomStart = cornerAnimation,
+                                    bottomEnd = cornerAnimation
+                                )
+                            ),
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            scrolledContainerColor = MaterialTheme.colorScheme.secondary,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                            titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                            actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                        ),
+                        title = {
+                            Text(
+                                "Simple TopAppBar",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        scrollBehavior = scrollBehavior,
+                        navigationIcon = {
+                            AnimatedContent(
+                                targetState = selectedUserIsNotSelected,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = TweenSpec(500)) with
+                                            fadeOut(animationSpec = TweenSpec(500))
+                                }
+                            ) { isNotSelected ->
+                                if (isNotSelected) {
                                     IconButton(
-                                        onClick = {
-                                            scope.launch { drawerState.open() }
-                                        }
+                                        onClick = { scope.launch { drawerState.open() } }
                                     ) {
                                         Icon(
                                             imageVector = Icons.Filled.Menu,
                                             contentDescription = "Localized description"
                                         )
                                     }
-                                },
-                                actions = {
-                                    IconButton(
-                                        onClick = {
-                                            openBottomSheet = true
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.MoreVert,
-                                            contentDescription = "Localized description"
-                                        )
-                                        BottomDrawer(
-                                            openBottomSheet = openBottomSheet,
-                                            onDismissRequest = { openBottomSheet = false },
-                                            bottomSheetState = bottomSheetState,
-                                            scope = scope
-                                        )
-
-                                    }
-                                }
-                            )
-
-                    } else {
-
-                            TopAppBar(
-                                modifier = Modifier
-                                    .clip(
-                                        RoundedCornerShape(
-                                            topStart = 0.dp,
-                                            topEnd = 0.dp,
-                                            bottomStart = 0.dp,
-                                            bottomEnd = 0.dp
-                                        )
-                                    ),
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary,
-                                    scrolledContainerColor = MaterialTheme.colorScheme.secondary,
-                                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
-                                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
-                                    actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
-                                ),
-                                title = {
-                                    Text(
-                                        "Simple TopAppBar",
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                },
-                                //one back button
-                                navigationIcon = {
+                                } else {
                                     IconButton(
                                         onClick = {
                                             if (selectedUser != -1) {
@@ -253,23 +188,47 @@ fun NavBarApp(
                                             contentDescription = "Localized description"
                                         )
                                     }
-                                },
-                            )
-
-                    }
+                                }
+                            }
+                        },
+                        actions = {
+                            AnimatedVisibility(
+                                visible = selectedUserIsNotSelected,
+                                enter = fadeIn(animationSpec = TweenSpec(500)),
+                                exit = fadeOut(animationSpec = TweenSpec(500))
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        openBottomSheet = true
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreVert,
+                                        contentDescription = "Localized description"
+                                    )
+                                    BottomDrawer(
+                                        openBottomSheet = openBottomSheet,
+                                        onDismissRequest = { openBottomSheet = false },
+                                        bottomSheetState = bottomSheetState,
+                                        scope = scope
+                                    )
+                                }
+                            }
+                        }
+                    )
                 },
-                //todo: off
-//                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 bottomBar = {
                     BottomNav(navController)
                 }
-
             ) { innerPadding ->
                 NavHostScreen(navController, innerPadding)
             }
         }
     )
 }
+
+
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -315,7 +274,6 @@ fun BottomDrawer(
         }
     }
 }
-
 @Composable
 fun BottomNav(navController: NavController) {
     BottomNavigation(
@@ -367,13 +325,12 @@ fun BottomNav(navController: NavController) {
         }
     }
 }
-
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun NavHostScreen(
     navController: NavHostController,
     innerPadding: PaddingValues,
-    viewModel: MainViewModel = viewModel()
+    viewModel: MainViewModel = viewModel(),
 ) {
     AnimatedNavHost(
         navController,
@@ -382,22 +339,18 @@ private fun NavHostScreen(
     ) {
         composable(
             route = NavScreens.HomeScreen.route,
-
             exitTransition = { ->
                 slideOutHorizontally(
                     targetOffsetX = { -300 },
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-
                     ) + fadeOut(animationSpec = tween(300))
             },
             popEnterTransition = { ->
                 slideInHorizontally(
                     initialOffsetX = { -300 },
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-
                     ) + fadeIn(animationSpec = tween(300))
             },
-
             ) {
             AppHomeScreen(
                 navController = navController,
@@ -406,7 +359,6 @@ private fun NavHostScreen(
         }
         composable(
             route = NavScreens.DetailScreen.route,
-
             enterTransition = { ->
                 slideInHorizontally(
                     initialOffsetX = { 300 },
@@ -418,15 +370,12 @@ private fun NavHostScreen(
                 slideOutHorizontally(
                     targetOffsetX = { 300 },
                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-
                     ) + fadeOut(animationSpec = tween(300))
             }
-
         ) {
             AppDetailScreen(
                 navController = navController
             )
-
         }
     }
 }

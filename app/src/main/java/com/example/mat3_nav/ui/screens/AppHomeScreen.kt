@@ -59,7 +59,6 @@ fun AppHomeScreen(
         viewModel = viewModel
     )
 }
-
 var selectedUser: Int by mutableStateOf(-1)
 var previousSelectedUser: Int = -1
 @Composable
@@ -70,18 +69,15 @@ fun UserCardsRoot(
         val user = selectedUser
         val gridState = rememberLazyGridState()
 //        val scrollPosition = rememberLazyGridState(viewModel.scrollPosition)
-
         BackHandler(enabled = user >= 0) {
             changeUser(-1)
         }
-
         DelayExit(visible = user < 0) {
             UserCardsScreen(
                 listState1 = gridState,
                 viewModel = viewModel
             )
         }
-
         DelayExit(visible = user >= 0) {
             val currentUser = remember { users[user] }
             UserCardDetailsScreen(
@@ -90,14 +86,12 @@ fun UserCardsRoot(
         }
     }
 }
-
 @Composable
 private fun UserCardsScreen(
     listState1: LazyGridState,
     viewModel: MainViewModel
 ) {
     val listState = rememberLazyGridState(viewModel.scrollPosition)
-
     LaunchedEffect(listState1) {
         val previousIndex = (previousSelectedUser).coerceAtLeast(0)
         if (!listState.layoutInfo.visibleItemsInfo.any { it.index == previousIndex }) {
@@ -107,7 +101,6 @@ private fun UserCardsScreen(
             println("Scrolling to viewModel.scrollPosition: ${viewModel.scrollPosition}")
         }
     }
-
     val scope = LocalSharedElementsRootScope.current!!
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -151,7 +144,6 @@ private fun UserCardsScreen(
         }
     }
 }
-
 @Composable
 private fun UserCardDetailsScreen(user: User) {
     val (fraction, setFraction) = remember { mutableStateOf(1f) }
@@ -204,7 +196,6 @@ private fun UserCardDetailsScreen(user: User) {
         }
     }
 }
-
 @Composable
 fun UserListRoot() {
     SharedElementsRoot {
@@ -224,7 +215,6 @@ fun UserListRoot() {
         }
     }
 }
-
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun UserListScreen(listState: LazyListState) {
@@ -234,7 +224,6 @@ private fun UserListScreen(listState: LazyListState) {
             listState.scrollToItem(previousIndex)
         }
     }
-
     val scope = LocalSharedElementsRootScope.current!!
     LazyColumn(state = listState) {
         itemsIndexed(users) { i, user ->
@@ -271,8 +260,6 @@ private fun UserListScreen(listState: LazyListState) {
         }
     }
 }
-
-
 @Composable
 private fun UserDetailsScreen(user: User) {
     Column(
@@ -292,7 +279,6 @@ private fun UserDetailsScreen(user: User) {
             Image(
                 painterResource(id = user.avatar),
                 contentDescription = user.name,
-
                 modifier = Modifier
                     .size(200.dp)
                     .clickable(enabled = !scope.isRunningTransition) { scope.changeUser(-1) },
@@ -308,7 +294,6 @@ private fun UserDetailsScreen(user: User) {
         }
     }
 }
-
 fun SharedElementsRootScope.changeUser(user: Int) {
     val currentUser = selectedUser
     if (currentUser != user) {
@@ -322,9 +307,7 @@ fun SharedElementsRootScope.changeUser(user: Int) {
         selectedUser = user
     }
 }
-
 private data class User(@DrawableRes val avatar: Int, val name: String)
-
 private val users = listOf(
     User(R.drawable.avatar_1, "Adam"),
     User(R.drawable.avatar_2, "Andrew"),
@@ -346,9 +329,7 @@ private val users = listOf(
 
 private const val ListScreen = "list"
 const val DetailsScreen = "peopleDetails"
-
 private const val TransitionDurationMillis = 250
-
 private val FadeOutTransitionSpec = MaterialContainerTransformSpec(
     durationMillis = TransitionDurationMillis,
     fadeMode = FadeMode.Out
