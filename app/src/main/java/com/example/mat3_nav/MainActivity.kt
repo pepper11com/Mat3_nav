@@ -54,14 +54,15 @@ class MainActivity : ComponentActivity() {
         val isDarkTheme = resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         setContent {
-            val hasCreatedProfile = LocalContext.current.getHasCreatedProfile()
+            val context = LocalContext.current
+            val hasUserId = remember { mutableStateOf(context.hasUserId()) }
 
             Mat3_navTheme(
                 darkTheme = isDarkTheme
             ) {
 //                WindowCompat.setDecorFitsSystemWindows(window, false)
 //                window.statusBarColor = Color.Transparent.toArgb()
-                NavBarApp(application = this@MainActivity.application, hasCreatedProfile = hasCreatedProfile)
+                NavBarApp(hasCreatedProfile = hasUserId)
             }
         }
     }
@@ -69,9 +70,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun NavBarApp(
-    application: Application,
-    hasCreatedProfile: Boolean,
-    viewModel: MainViewModel = viewModel(factory = MainViewModelFactory(application)),
+    hasCreatedProfile: MutableState<Boolean>,
+    viewModel: MainViewModel = viewModel(),
 ) {
     val navController = rememberAnimatedNavController()
     val scope2 = LocalSharedElementsRootScope
@@ -137,6 +137,7 @@ fun NavBarApp(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
+                if (hasCreatedProfile.value) {
                 TopAppBar(
                     modifier = Modifier
                         .zIndex(10f)
@@ -160,7 +161,11 @@ fun NavBarApp(
                         AnimatedContent(
                             targetState = selectedUserIsNotSelected,
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(25)) with fadeOut(animationSpec = tween(25))
+                                fadeIn(animationSpec = tween(25)) with fadeOut(
+                                    animationSpec = tween(
+                                        25
+                                    )
+                                )
                             }
                         ) { isNotSelected ->
                             if (isNotSelected) {
@@ -193,7 +198,11 @@ fun NavBarApp(
                         AnimatedContent(
                             targetState = selectedUserIsNotSelected,
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(25)) with fadeOut(animationSpec = tween(25))
+                                fadeIn(animationSpec = tween(25)) with fadeOut(
+                                    animationSpec = tween(
+                                        25
+                                    )
+                                )
                             }
                         ) { isNotSelected ->
                             if (isNotSelected) {
@@ -236,16 +245,19 @@ fun NavBarApp(
                         }
                     }
                 )
+            }
                 NavHostScreen(
                     navController,
                     hasCreatedProfile,
                     viewModel
                 )
-                BottomNav(
-                    navController,
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                )
+                if (hasCreatedProfile.value) {
+                    BottomNav(
+                        navController,
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                    )
+                }
             }
         }
     )
@@ -353,10 +365,10 @@ fun BottomNav(
 @Composable
 private fun NavHostScreen(
     navController: NavHostController,
-    hasCreatedProfile: Boolean,
+    hasCreatedProfile: MutableState<Boolean>,
     viewModel: MainViewModel
 ) {
-    val startDestination = if (hasCreatedProfile) NavScreens.HomeScreen.route else NavScreens.CreateProfileScreen.route
+    val startDestination = if (hasCreatedProfile.value) NavScreens.HomeScreen.route else NavScreens.CreateProfileScreen.route
 
     AnimatedNavHost(
         navController,
@@ -464,9 +476,12 @@ private fun NavHostScreen(
         ) {
             LoginScreen(
                 navController = navController,
-                //  onLoginSuccess: (userId: String) -> Unit
                 viewModel = viewModel,
-                onLoginSuccess = {
+                onLoginSuccess = {context, userId ->
+                    // Set the user ID
+                    context.setUserId(userId)
+                    // Update the hasUserId state
+                    hasCreatedProfile.value = true
                     navController.navigate(NavScreens.HomeScreen.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
@@ -480,14 +495,19 @@ private fun NavHostScreen(
     }
 }
 
+fun Context.getUserId(): String? {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    return sharedPrefs.getString("userId", null)
+}
 
-fun Context.getHasCreatedProfile(): Boolean {
+fun Context.setUserId(userId: String) {
     val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    return sharedPrefs.getBoolean("has_created_profile", false)
+    sharedPrefs.edit().putString("userId", userId).apply()
 }
-fun Context.setHasCreatedProfile(value: Boolean) {
-    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    sharedPrefs.edit().putBoolean("has_created_profile", value).apply()
+
+fun Context.hasUserId(): Boolean {
+    return getUserId() != null
 }
+
 
 

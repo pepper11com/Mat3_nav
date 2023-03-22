@@ -42,14 +42,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
         get() = _userId
 
     fun authenticate(username: String, password: String, setLoading: (Boolean) -> Unit) {
-        //todo test if this works
         setLoading(true)
         viewModelScope.launch {
             val userId = profileRepository.authenticateUser(username, password)
-            println("userId: --------------->>>>  $userId") // works
+
             if (userId != null) {
                 _authenticationResult.value = true
-                println("userId: --------------->>>> 2.0 $userId") //works
+
                 setUserId(userId)
                 setLoading(false)
             } else {

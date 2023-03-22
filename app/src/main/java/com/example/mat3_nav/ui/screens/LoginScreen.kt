@@ -1,6 +1,7 @@
 package com.example.mat3_nav.ui.screens
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,23 +11,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import com.example.mat3_nav.MainViewModelFactory
 import com.example.mat3_nav.viewmodel.MainViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavHostController,
     viewModel: MainViewModel,
-    onLoginSuccess: (String) -> Unit // Add this line
+    onLoginSuccess: (context: Context, userId: String) -> Unit
 ) {
+    val context = LocalContext.current
+
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loginError by remember { mutableStateOf(false) }
@@ -96,7 +98,7 @@ fun LoginScreen(
 
     LaunchedEffect(key1 = viewModel.userId.value) {
         viewModel.userId.value?.let { userId ->
-            onLoginSuccess(userId)
+            onLoginSuccess(context, userId)
             navController.navigate(NavScreens.HomeScreen.route) {
                 popUpTo(navController.graph.findStartDestination().id) {
                     saveState = true
