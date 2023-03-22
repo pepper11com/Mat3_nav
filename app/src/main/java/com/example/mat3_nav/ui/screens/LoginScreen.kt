@@ -2,17 +2,17 @@ package com.example.mat3_nav.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,17 +24,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
+import com.example.mat3_nav.ui.theme.quickSand
 
 @Composable
 fun LoginScreen(
@@ -67,147 +67,166 @@ fun LoginScreen(
         }
     }
 
-
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
-                .wavyClipPath(waveHeight = 200.dp, wavePosition = 0.4f)
+                .fillMaxWidth()
+                .fillMaxHeight(0.6f)
+                .wavyClipPath(waveHeight = 200.dp, wavePosition = .6f)
                 .background(Color(0xFF006BFF))
-                .zIndex(1f),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.4f)
+                .align(Alignment.BottomStart)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp)
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 66.dp, bottom = 66.dp, start = 46.dp, end = 46.dp),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                Text(
-                    text = "Login",
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
+            Text(
+                text = "Welcome",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = quickSand,
+                color = Color.White,
+                modifier = Modifier.zIndex(1f)
+            )
+            Text(
+                text = "Back",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = quickSand,
+                color = Color.White,
+                modifier = Modifier.zIndex(1f)
+            )
         }
 
-        Box(
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            contentAlignment = Alignment.Center
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.weight(1f))
 
-            Column(
+
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            CustomTextField(
+                icon = Icons.Filled.Email,
+                value = username,
+                onValueChange = { username = it },
+                label = "Username",
+                placeholder = "Enter your username"
+            )
+
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            CustomTextField(
+                icon = Icons.Filled.Lock,
+                value = password,
+                onValueChange = { password = it },
+                label = "Password",
+                placeholder = "Enter your password",
+                isPassword = true
+            )
+
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (loginError) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    fontSize = 16.sp,
+                    text = "Login failed. Please check your username and password.",
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .imePadding()
-                    .padding(top = 66.dp, bottom = 66.dp, start = 46.dp, end = 46.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF006BFF),
+                    contentColor = Color.White,
+                ),
+                onClick = {
+                    loginError = false
+                    viewModel.authenticate(username, password) { setLoading ->
+                        showLoadingPopup = setLoading
+                    }
+                    if (authenticationResult == false) {
+                        failedAttempts++
+                    }
+                }
             ) {
-
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-
-                OutlinedTextField(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Username") },
-                    placeholder = { Text("Enter your username") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    shape = RoundedCornerShape(8.dp)
+                Text(
+                    text = "Login",
+                    style = MaterialTheme.typography.headlineSmall
                 )
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    placeholder = { Text("Enter your password") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    visualTransformation = PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(8.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (loginError) {
+            TextButton(
+                onClick = {
+                    navController.navigate(NavScreens.CreateProfileScreen.route)
+                },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Login failed. Please check your username and password.",
-                        color = MaterialTheme.colorScheme.error
+                        text = "Don't have an account?",
+                        color = Color.LightGray.copy(alpha = 0.5f),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Sign up",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.LightGray,
+                    )
+                    Spacer(modifier = Modifier.width(4.dp)) // Add some space between text and icon
+                    Icon(
+                        Icons.Filled.ArrowForward,
+                        modifier = Modifier.size(16.dp),
+                        contentDescription = "Arrow forward",
+                        tint = Color.LightGray
                     )
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    onClick = {
-                        loginError = false
-                        viewModel.authenticate(username, password) { setLoading ->
-                            showLoadingPopup = setLoading
-                        }
-                        if (authenticationResult == false) {
-                            failedAttempts++
-                        }
-                    }
-                ) {
-                    Text("Login")
-                }
-
-                TextButton(
-                    onClick = {
-                        navController.navigate(NavScreens.CreateProfileScreen.route)
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Don't have an account?",
-                            color = Color.LightGray.copy(alpha = 0.5f),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Sign up",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.LightGray,
-                        )
-                        Spacer(modifier = Modifier.width(4.dp)) // Add some space between text and icon
-                        Icon(
-                            Icons.Filled.ArrowForward,
-                            modifier = Modifier
-                                .padding(top = 3.dp)
-                                .size(14.dp),
-                            contentDescription = "Login icon",
-                            tint = Color.LightGray
-                        )
-                    }
-                }
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+
         }
-        LoadingPopup(
-            isVisible = showLoadingPopup,
-            errorMessage = if (loginError) "Login failed. Please check your username and password." else null,
-            onDismiss = { showLoadingPopup = false }
-        )
+
     }
+
+    LoadingPopup(
+        isVisible = showLoadingPopup,
+        errorMessage = null,
+        onDismiss = {
+            showLoadingPopup = false
+        }
+    )
+
 
     LaunchedEffect(key1 = viewModel.userId.value) {
         viewModel.userId.value?.let { userId ->
@@ -284,6 +303,94 @@ fun Modifier.wavyClipPath(
         return Outline.Generic(path)
     }
 })
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomTextField(
+    icon: ImageVector,
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    isPassword: Boolean = false,
+) {
+    val focusRequester = remember { FocusRequester() }
+    val isFocused = remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val passwordVisibility = remember { mutableStateOf(false) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is FocusInteraction.Focus -> isFocused.value = true
+                is FocusInteraction.Unfocus -> isFocused.value = false
+            }
+        }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            icon,
+            modifier = Modifier
+                .padding(top = 5.dp)
+                .size(26.dp),
+            contentDescription = "Login icon",
+            tint = if (isFocused.value) primaryColor else Color.LightGray
+        )
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .focusRequester(focusRequester)
+                .weight(1f),
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text),
+            visualTransformation = if (isPassword && !passwordVisibility.value) PasswordVisualTransformation() else VisualTransformation.None,
+            shape = RoundedCornerShape(8.dp),
+            colors = TextFieldDefaults.textFieldColors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                containerColor = Color.Transparent
+            ),
+            interactionSource = interactionSource,
+            textStyle = TextStyle(
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+        )
+
+        if (isPassword) {
+            IconButton(
+                modifier = Modifier
+                    .padding(end = 4.dp),
+                onClick = { passwordVisibility.value = !passwordVisibility.value }
+            ) {
+                Icon(
+                    imageVector = if (passwordVisibility.value) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = "Toggle password visibility",
+                    tint = if (isFocused.value) primaryColor else Color.LightGray
+                )
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(4.dp))
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(if (isFocused.value) primaryColor else Color.LightGray)
+    )
+}
+
 
 
 

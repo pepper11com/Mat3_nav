@@ -3,23 +3,17 @@ package com.example.mat3_nav.ui.screens
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
-import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.*
@@ -36,14 +30,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import com.example.mat3_nav.R
+import com.example.mat3_nav.ui.theme.quickSand
 import com.example.mat3_nav.viewmodel.MainViewModel
-import java.io.File
-import java.io.FileOutputStream
 import java.lang.Float.max
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -53,169 +46,192 @@ fun CreateProfileScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var profileDescription by remember { mutableStateOf("") }
-
     val createSuccess by viewModel.createSuccess.observeAsState(initial = false)
     if (createSuccess) {
         // Navigate to another screen after successful profile creation
         navController.navigate(NavScreens.LoginScreen.route)
     }
-
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            ,
-        containerColor = Color.Transparent,
-        content = {
-            Column(
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                PickImageFromGallery(context, viewModel)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    // Add image picker and other UI elements if necessary
-
-                    OutlinedTextField(
-                        value = username,
-                        placeholder = { Text(text = "Username") },
-                        onValueChange = { username = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        label = { Text(text = "Username") }
-                    )
-                    OutlinedTextField(
-                        value = password,
-                        placeholder = { Text(text = "Password") },
-                        onValueChange = { password = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        label = { Text(text = "Password") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-                    OutlinedTextField(
-                        value = firstName,
-                        placeholder = { Text(text = "First Name") },
-                        onValueChange = { firstName = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        label = { Text(text = "First Name") }
-                    )
-                    OutlinedTextField(
-                        value = lastName,
-                        placeholder = { Text(text = "Last Name") },
-                        onValueChange = { lastName = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        label = { Text(text = "Last Name") }
-                    )
-                    OutlinedTextField(
-                        value = profileDescription,
-                        placeholder = { Text(text = "Profile Description") },
-                        onValueChange = { profileDescription = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        label = { Text(text = "Profile Description") }
-                    )
-                }
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    onClick = {
-                        // CREATE PROFILE IF INPUT NOT EMPTY
-                        if (firstName.isEmpty() || lastName.isEmpty() || profileDescription.isEmpty()) {
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.fields_must_not_be_empty),
-                                Toast.LENGTH_SHORT
-                            ).show()
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.6f)
+                .wavyClipPath(waveHeight = 200.dp, wavePosition = .6f)
+                .background(Color(0xFF006BFF))
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.4f)
+                .align(Alignment.BottomStart)
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp)
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
+        ) {
+            Text(
+                text = "Create",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = quickSand,
+                color = Color.White,
+                modifier = Modifier.zIndex(1f)
+            )
+            Text(
+                text = "Profile",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = quickSand,
+                color = Color.White,
+                modifier = Modifier.zIndex(1f)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+            PickImageFromGallery(context, viewModel)
+            Spacer(modifier = Modifier.height(16.dp))
+            CustomTextField(
+                icon = Icons.Filled.Person,
+                value = username,
+                onValueChange = { username = it },
+                label = "Username",
+                placeholder = "Enter your username"
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            CustomTextField(
+                icon = Icons.Filled.Lock,
+                value = password,
+                onValueChange = { password = it },
+                label = "Password",
+                placeholder = "Enter your password",
+                isPassword = true
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            CustomTextField(
+                icon = Icons.Filled.PersonOutline,
+                value = firstName,
+                onValueChange = { firstName = it },
+                label = "First Name",
+                placeholder = "Enter your first name"
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            CustomTextField(
+                icon = Icons.Filled.PersonOutline,
+                value = lastName,
+                onValueChange = { lastName = it },
+                label = "Last Name",
+                placeholder = "Enter your last name"
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            CustomTextField(
+                icon = Icons.Filled.Description,
+                value = profileDescription,
+                onValueChange = { profileDescription = it },
+                label = "Profile Description",
+                placeholder = "Enter your profile description"
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                onClick = {
+                    // CREATE PROFILE IF INPUT NOT EMPTY
+                    if (firstName.isEmpty() || lastName.isEmpty() || profileDescription.isEmpty()) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.fields_must_not_be_empty),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        val uriString: String
+                        if (viewModel.imageUri == null) {
+                            uriString = context.getString(R.string.no_gallery_image)
                         } else {
-                            val uriString: String
-                            if (viewModel.imageUri == null) {
-                                uriString = context.getString(R.string.no_gallery_image)
-                            } else {
-                                uriString = viewModel.imageUri.toString()
-                            }
-                            viewModel.reset()
-                            viewModel.createProfile(
-                                username = username,
-                                password = password,
-                                firstName = firstName,
-                                lastName = lastName,
-                                description = profileDescription,
-                                imageUri = uriString
-                            )
-                            firstName = ""
-                            lastName = ""
-                            profileDescription = ""
-                            navController.navigate(NavScreens.LoginScreen.route)
+                            uriString = viewModel.imageUri.toString()
                         }
-                    }
-                ) {
-                    Text(text = "Create Profile")
-                }
-
-                TextButton(
-                    onClick = {
+                        viewModel.reset()
+                        viewModel.createProfile(
+                            username = username,
+                            password = password,
+                            firstName = firstName,
+                            lastName = lastName,
+                            description = profileDescription,
+                            imageUri = uriString
+                        )
+                        firstName = ""
+                        lastName = ""
+                        profileDescription = ""
                         navController.navigate(NavScreens.LoginScreen.route)
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Already have an account?",
-                            color = Color.LightGray.copy(alpha = 0.5f),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Login",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.LightGray,
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            Icons.Filled.ArrowForward,
-                            modifier = Modifier
-                                .padding(top = 3.dp)
-                                .size(14.dp),
-                            contentDescription = "Login icon",
-                            tint = Color.LightGray
-                        )
                     }
+                }
+            ) {
+                Text(text = "Create Profile")
+            }
+
+            TextButton(
+                onClick = {
+                    navController.navigate(NavScreens.LoginScreen.route)
+                },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Already have an account?",
+                        color = Color.LightGray.copy(alpha = 0.5f),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Login",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.LightGray,
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Filled.ArrowForward,
+                        modifier = Modifier
+                            .padding(top = 3.dp)
+                            .size(14.dp),
+                        contentDescription = "Login icon",
+                        tint = Color.LightGray
+                    )
                 }
             }
 
+            Spacer(modifier = Modifier.weight(1f))
+
         }
-    )
+    }
 }
 
 
 @Composable
 fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
+
     val minScale = remember { mutableStateOf(1f) }
     val maxScale = remember { mutableStateOf(3f) }
     val scale = remember { mutableStateOf(1f) }
     val imageSize = 150.dp
     val offsetX = remember { mutableStateOf(0f) }
     val offsetY = remember { mutableStateOf(0f) }
-
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -236,6 +252,7 @@ fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
 
     if (viewModel.imageUri != null) {
         // https://stackoverflow.com/questions/58903911/how-to-fix-deprecated-issue-in-android-bitmap
+
         viewModel.bitmap.value?.let { btm ->
             // Calculate the minimum scale to always fill the circle
             minScale.value = max(imageSize.value / btm.width, imageSize.value / btm.height)
@@ -300,6 +317,12 @@ fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
         )
     }
 }
+
+
+
+
+
+
 
 
 
