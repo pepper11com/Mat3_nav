@@ -110,6 +110,11 @@ class ProfileRepository {
         }
     }
 
+    fun logout() {
+        _profile.value?.userId = null
+        _profile.postValue(_profile.value)
+    }
+
     class ProfileUpdateError(message: String, cause: Throwable) : Exception(message, cause)
 
 

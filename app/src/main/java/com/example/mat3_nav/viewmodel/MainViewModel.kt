@@ -53,6 +53,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
                 setLoading(false)
             } else {
                 _authenticationResult.value = false
+                setLoading(false)
             }
         }
     }
@@ -102,6 +103,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
                 _errorText.value = errorMsg
             }
         }
+    }
+    fun logout() {
+        profileRepository.logout()
     }
     fun reset() {
         _errorText.value = ""

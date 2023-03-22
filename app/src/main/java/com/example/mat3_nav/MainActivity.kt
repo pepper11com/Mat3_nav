@@ -72,6 +72,7 @@ class MainActivity : ComponentActivity() {
 fun NavBarApp(
     hasCreatedProfile: MutableState<Boolean>,
     viewModel: MainViewModel = viewModel(),
+    context: Context = LocalContext.current,
 ) {
     val navController = rememberAnimatedNavController()
     val scope2 = LocalSharedElementsRootScope
@@ -100,11 +101,14 @@ fun NavBarApp(
         }
     }
 
+
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = hasCreatedProfile.value,
         drawerContent = {
             ModalDrawerSheet {
                 Spacer(Modifier.height(12.dp))
+
                 screens.forEach { screen ->
                     NavigationDrawerItem(
                         icon = { screen.icon?.let { Icon(it, contentDescription = null) } },
@@ -228,6 +232,25 @@ fun NavBarApp(
                         ) {
                             IconButton(
                                 onClick = {
+                                    viewModel.logout()
+                                    hasCreatedProfile.value = false
+                                    context.clearUserId()
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.ExitToApp,
+                                    contentDescription = "Localized description"
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = selectedUserIsNotSelected,
+                            enter = fadeIn(animationSpec = tween(25)),
+                            exit = fadeOut(animationSpec = tween(25))
+                        ) {
+                            IconButton(
+                                onClick = {
                                     openBottomSheet = true
                                 }
                             ) {
@@ -272,6 +295,9 @@ fun BottomDrawer(
 ) {
     if (openBottomSheet) {
         ModalBottomSheet(
+            modifier = Modifier
+                .navigationBarsPadding(),
+
             onDismissRequest = onDismissRequest,
             sheetState = bottomSheetState,
         ) {
@@ -368,7 +394,7 @@ private fun NavHostScreen(
     hasCreatedProfile: MutableState<Boolean>,
     viewModel: MainViewModel
 ) {
-    val startDestination = if (hasCreatedProfile.value) NavScreens.HomeScreen.route else NavScreens.CreateProfileScreen.route
+    val startDestination = if (hasCreatedProfile.value) NavScreens.HomeScreen.route else NavScreens.StartScreen.route
 
     AnimatedNavHost(
         navController,
@@ -492,6 +518,32 @@ private fun NavHostScreen(
                 }
             )
         }
+        composable(
+            route = NavScreens.StartScreen.route,
+            enterTransition = { ->
+                slideInHorizontally(
+                    initialOffsetX = { 300 },
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                ) + fadeIn(animationSpec = tween(300))
+            },
+            popExitTransition = { ->
+                slideOutHorizontally(
+                    targetOffsetX = { 300 },
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                ) + fadeOut(animationSpec = tween(300))
+            }
+
+        ){
+            StartScreen(
+                navController = navController
+            )
+        }
     }
 }
 
@@ -507,6 +559,11 @@ fun Context.setUserId(userId: String) {
 
 fun Context.hasUserId(): Boolean {
     return getUserId() != null
+}
+
+fun Context.clearUserId() {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    sharedPrefs.edit().remove("userId").apply()
 }
 
 
