@@ -2,6 +2,8 @@ package com.example.mat3_nav
 
 import android.content.Context
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,43 +49,50 @@ import com.mxalbert.sharedelements.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mat3_nav.model.Profile
+import kotlinx.coroutines.delay
 
 
 class MainActivity : ComponentActivity() {
     private val mainViewModel by viewModels<MainViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //todo change splash screen
         installSplashScreen()
         val isDarkTheme = resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         setContent {
             val context = LocalContext.current
-
-            //check the whole time if viewModel.userId.value!! is null or not
             val userId = mainViewModel.userId.observeAsState().value
-            val hasUserId = remember { mutableStateOf(userId != null) }
+            val hasUserId = remember { mutableStateOf(context.hasUserId()) }
             val counter = remember { mutableStateOf(0) }
 
+            // Add this LaunchedEffect block
+            mainViewModel.fetchAllProfiles()
+            val profiles = mainViewModel.allProfiles.observeAsState().value
+            //getProfile( context.getUserId() ) // get the user profile from the database
+
+
+
             LaunchedEffect(counter.value) {
-                //every time the counter changes check if the user has a userId
-                println("COUNTER === " + counter.value)
-                hasUserId.value = false
-                println("HAS USER ID === " + hasUserId.value)
+                if (counter.value > 0) {
+                    println("LaunchedEffect context.getUserId() 1st " + context.getUserId()) // good
+                    hasUserId.value = false
+                    context.clearUserId()
+                    println("LaunchedEffect context.getUserId() 2nd " + context.getUserId()) // null - good
+                }
             }
-
-
 
             Mat3_navTheme(
                 darkTheme = isDarkTheme
             ) {
-//                WindowCompat.setDecorFitsSystemWindows(window, false)
-//                window.statusBarColor = Color.Transparent.toArgb()
-                NavBarApp(hasCreatedProfile = hasUserId, counter = counter)
+                NavBarApp(hasCreatedProfile = hasUserId, counter = counter, profiles = profiles)
             }
         }
+
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -92,6 +101,7 @@ fun NavBarApp(
     counter: MutableState<Int>,
     viewModel: MainViewModel = viewModel(),
     context: Context = LocalContext.current,
+    profiles: List<Profile>?,
 ) {
     val navController = rememberAnimatedNavController()
     val scope2 = LocalSharedElementsRootScope
@@ -114,6 +124,14 @@ fun NavBarApp(
     val listState = rememberLazyGridState(scrollPosition)
 
     val profile by viewModel.profile.observeAsState()
+    if (profile == null) {
+        if (context.hasUserId()){
+            viewModel.getProfile(context.getUserId()!!)
+        }
+    } else {
+        println("profile $profile")
+    }
+
 
     LaunchedEffect(listState) {
         val previousIndex = (previousSelectedUser).coerceAtLeast(0)
@@ -254,8 +272,11 @@ fun NavBarApp(
                                 IconButton(
                                     onClick = {
                                         //todo delete the userId from the database
-                                        viewModel.logout(viewModel.userId.value!!)
-                                        counter.value++
+                                        viewModel.userId.value?.let { viewModel.logout(it) }
+                                        Handler(Looper.getMainLooper()).postDelayed({
+                                            counter.value++
+                                        }, 100)
+
                                         println("DIT IS HET: " + hasCreatedProfile.value)
                                     }
                                 ) {
@@ -318,7 +339,8 @@ fun NavBarApp(
                 NavHostScreen(
                     navController,
                     hasCreatedProfile,
-                    viewModel
+                    viewModel,
+                    profiles
                 )
                 if (hasCreatedProfile.value) {
                     BottomNav(
@@ -440,7 +462,8 @@ fun BottomNav(
 private fun NavHostScreen(
     navController: NavHostController,
     hasCreatedProfile: MutableState<Boolean>,
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    profiles: List<Profile>?
 ) {
     val startDestination =
         if (hasCreatedProfile.value) NavScreens.HomeScreen.route else NavScreens.StartScreen.route
@@ -470,11 +493,18 @@ private fun NavHostScreen(
                 ) + fadeIn(animationSpec = tween(300))
             },
         ) {
-            AppHomeScreen(
-                navController = navController,
-                viewModel = viewModel
-            )
+            LaunchedEffect(Unit) {
+                viewModel.fetchAllProfiles()
+            }
+            if (profiles != null) {
+                AppHomeScreen(
+                    navController = navController,
+                    viewModel = viewModel,
+                    profiles = profiles
+                )
+            }
         }
+
         composable(
             route = NavScreens.DetailScreen.route,
             enterTransition = {
@@ -554,7 +584,8 @@ private fun NavHostScreen(
                 viewModel = viewModel,
                 onLoginSuccess = { context, userId ->
                     // Set the user ID
-//                    context.setUserId(userId)
+                    context.setUserId(userId)
+                    println("LoginScreen - context.setUserId: ${context.getUserId()}") // good
                     // Update the hasUserId state
                     hasCreatedProfile.value = true
                     navController.navigate(NavScreens.HomeScreen.route) {
@@ -595,31 +626,31 @@ private fun NavHostScreen(
         }
     }
 }
-//
-//fun Context.getUserId(): String? {
-//    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-//    return sharedPrefs.getString("userId", null)
-//}
-//
-//fun Context.setUserId(userId: String) {
-//    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-//    sharedPrefs.edit().putString("userId", userId).apply()
-//}
-//
-//fun Context.hasUserId(): Boolean {
-//    return getUserId() != null
-//}
-//
-//fun Context.getIdOfUser(): String? {
-//    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-//    println("getIdOfUser >>>>>>>>>" + sharedPrefs.getString("userId", null))
-//    return sharedPrefs.getString("userId", null)
-//}
-//
-//fun Context.clearUserId() {
-//    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-//    sharedPrefs.edit().remove("userId").apply()
-//}
+
+fun Context.getUserId(): String? {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    return sharedPrefs.getString("userId", null)
+}
+
+fun Context.setUserId(userId: String) {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    sharedPrefs.edit().putString("userId", userId).apply()
+}
+
+fun Context.hasUserId(): Boolean {
+    return getUserId() != null
+}
+
+fun Context.getIdOfUser(): String? {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    println("getIdOfUser >>>>>>>>>" + sharedPrefs.getString("userId", null))
+    return sharedPrefs.getString("userId", null)
+}
+
+fun Context.clearUserId() {
+    val sharedPrefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    sharedPrefs.edit().remove("userId").apply()
+}
 
 fun fileNameToDrawableId(context: Context, fileName: String): Int {
     println("fileNameToDrawableId: $fileName")

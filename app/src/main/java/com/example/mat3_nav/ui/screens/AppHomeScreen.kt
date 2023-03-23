@@ -18,61 +18,71 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ListItem
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import com.example.mat3_nav.R
 import com.example.mat3_nav.viewmodel.MainViewModel
 import com.mxalbert.sharedelements.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mat3_nav.model.Profile
 
+
+var selectedUser: Int by mutableStateOf(-1)
+var previousSelectedUser: Int = -1
 
 @Composable
 fun AppHomeScreen(
     navController: NavController,
     viewModel: MainViewModel = viewModel(),
+    profiles: List<Profile>
 ) {
+    viewModel.fetchAllProfiles()
+//    //get the length of the list
+//    val profiles = viewModel.allProfiles.value ?: emptyList()
+//    val listSize = profiles.size
+
+    if (profiles.isEmpty()){
+        //show a box with a loading icon on top of the screen
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(100.dp)
+            )
+        }
+    }
+
     UserCardsRoot(
-        viewModel = viewModel
+        viewModel = viewModel,
+        profiles = profiles,
     )
 }
-var selectedUser: Int by mutableStateOf(-1)
-var previousSelectedUser: Int = -1
+
 @Composable
 fun UserCardsRoot(
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    profiles: List<Profile>,
 ) {
-    val profiles = viewModel.allProfiles.value ?: emptyList()
+    viewModel.fetchAllProfiles()
 
-    println("size: ${profiles.size}")
-    val userss = profiles.map { it.firstName }
-    println("users: $userss")
 
     val context = LocalContext.current
 
@@ -96,6 +106,7 @@ fun UserCardsRoot(
             UserCardDetailsScreen(
                 currentUser,
                 context = context,
+                profiles = profiles,
             )
         }
     }
@@ -166,7 +177,8 @@ private fun UserCardsScreen(
 @Composable
 private fun UserCardDetailsScreen(
     profile: Profile,
-    context: Context
+    context: Context,
+    profiles: List<Profile>
 ) {
     val (fraction, setFraction) = remember { mutableStateOf(1f) }
     // Scrim color
@@ -187,7 +199,6 @@ private fun UserCardDetailsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.primary),
-                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
                         painterResource(id = fileNameToDrawableId(context, profile.imageUri!!)),
@@ -198,27 +209,39 @@ private fun UserCardDetailsScreen(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
                                     if (delta > 10f) {
-                                        //todo
-                                        scope.changeUser(-1, listOf(profile), context)
+                                        scope.changeUser(-1, profiles, context)
                                     }
                                 }
                             ),
-//                            .clickable(enabled = !scope.isRunningTransition) {
-//                                scope.changeUser(-1)
-//                            },
                         contentScale = ContentScale.Crop
                     )
                     Text(
-                        text = profile.firstName,
+                        text =  "${profile.firstName} ${profile.lastName}",
                         color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally),
                         style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Text(
+                        text = "Profile description:",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Start
+                    )
+                    Text(
+                        text = profile.description!!,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(start = 16.dp, top = 5.dp, end = 16.dp, bottom = 16.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Start
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 fun UserListRoot(
     profiles: List<Profile>,
@@ -314,7 +337,13 @@ private fun UserDetailsScreen(
                 contentDescription = profile.firstName,
                 modifier = Modifier
                     .size(200.dp)
-                    .clickable(enabled = !scope.isRunningTransition) { scope.changeUser(-1, listOf(profile), context) },
+                    .clickable(enabled = !scope.isRunningTransition) {
+                        scope.changeUser(
+                            -1,
+                            listOf(profile),
+                            context
+                        )
+                    },
                 contentScale = ContentScale.Crop
             )
         }

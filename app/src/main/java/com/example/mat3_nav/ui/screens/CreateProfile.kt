@@ -145,6 +145,10 @@ fun CreateProfileScreen(
             Button(
                 modifier = Modifier
                     .fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF006BFF),
+                    contentColor = Color.White
+                ),
                 onClick = {
                     // CREATE PROFILE IF INPUT NOT EMPTY
                     if (firstName.isEmpty() || lastName.isEmpty() || profileDescription.isEmpty()) {
