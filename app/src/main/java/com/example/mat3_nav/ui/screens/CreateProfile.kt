@@ -66,38 +66,38 @@ fun CreateProfileScreen(
                 .fillMaxHeight(0.4f)
                 .align(Alignment.BottomStart)
         )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp)
-                .verticalScroll(rememberScrollState())
-                .imePadding(),
-        ) {
-            Text(
-                text = "Create",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = quickSand,
-                color = Color.White,
-                modifier = Modifier.zIndex(1f)
-            )
-            Text(
-                text = "Profile",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = quickSand,
-                color = Color.White,
-                modifier = Modifier.zIndex(1f)
-            )
-        }
+
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
-                .imePadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .imePadding()
         ) {
+
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Create",
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = quickSand,
+                    color = Color.White,
+                    modifier = Modifier.zIndex(1f)
+                )
+                Text(
+                    text = "Profile",
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = quickSand,
+                    color = Color.White,
+                    modifier = Modifier.zIndex(1f)
+                )
+            }
+
             Spacer(modifier = Modifier.weight(3f))
             PickImageFromGallery(context, viewModel)
             Spacer(modifier = Modifier.height(16.dp))
@@ -182,37 +182,42 @@ fun CreateProfileScreen(
             ) {
                 Text(text = "Create Profile")
             }
-
-            TextButton(
-                onClick = {
-                    navController.navigate(NavScreens.LoginScreen.route)
-                },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+
+                TextButton(
+                    onClick = {
+                        navController.navigate(NavScreens.LoginScreen.route)
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
                 ) {
-                    Text(
-                        text = "Already have an account?",
-                        color = Color.LightGray.copy(alpha = 0.5f),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Login",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.LightGray,
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        Icons.Filled.ArrowForward,
-                        modifier = Modifier
-                            .padding(top = 3.dp)
-                            .size(14.dp),
-                        contentDescription = "Login icon",
-                        tint = Color.LightGray
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Already have an account?",
+                            color = Color.LightGray.copy(alpha = 0.5f),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Login",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.LightGray,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            Icons.Filled.ArrowForward,
+                            modifier = Modifier
+                                .padding(top = 3.dp)
+                                .size(14.dp),
+                            contentDescription = "Login icon",
+                            tint = Color.LightGray
+                        )
+                    }
                 }
             }
 

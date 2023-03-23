@@ -62,10 +62,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
         fetchAllProfiles()
     }
 
-    fun fetchAllProfiles() {
+    fun fetchAllProfiles(userId: String? = null) {
         viewModelScope.launch {
             try {
-                profileRepository.getAllProfiles()
+                if (userId != null) {
+                    profileRepository.getAllProfiles(userId)
+                }
             } catch (ex: ProfileRepository.ProfileRetrievalError) {
                 val errorMsg = "Something went wrong while retrieving all profiles"
                 Log.e(TAG, ex.message ?: errorMsg)
@@ -73,6 +75,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
+
 
 
 

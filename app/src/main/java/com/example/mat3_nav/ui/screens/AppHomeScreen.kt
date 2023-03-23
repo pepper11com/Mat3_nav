@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import com.example.mat3_nav.viewmodel.MainViewModel
 import com.mxalbert.sharedelements.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mat3_nav.getUserId
 import com.example.mat3_nav.model.Profile
 
 
@@ -50,13 +51,11 @@ fun AppHomeScreen(
     viewModel: MainViewModel = viewModel(),
     profiles: List<Profile>
 ) {
-    viewModel.fetchAllProfiles()
-//    //get the length of the list
-//    val profiles = viewModel.allProfiles.value ?: emptyList()
-//    val listSize = profiles.size
+    val context = LocalContext.current
+    viewModel.fetchAllProfiles(context.getUserId())
+
 
     if (profiles.isEmpty()){
-        //show a box with a loading icon on top of the screen
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -81,10 +80,9 @@ fun UserCardsRoot(
     viewModel: MainViewModel,
     profiles: List<Profile>,
 ) {
-    viewModel.fetchAllProfiles()
-
-
     val context = LocalContext.current
+    viewModel.fetchAllProfiles(context.getUserId())
+
 
     SharedElementsRoot {
         val user = selectedUser

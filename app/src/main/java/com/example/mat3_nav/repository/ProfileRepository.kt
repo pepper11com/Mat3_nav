@@ -27,22 +27,28 @@ class ProfileRepository {
         get() = _allProfiles
 
 
-    suspend fun getAllProfiles() {
+    suspend fun getAllProfiles(currentUserId: String) {
         try {
             withTimeout(5_000) {
                 val data = profilesCollection
                     .get()
                     .await()
 
-                val profiles = data.documents.map { document ->
-                    val username = document.getString("username").toString()
-                    val password = document.getString("password").toString()
-                    val firstName = document.getString("firstName").toString()
-                    val lastName = document.getString("lastName").toString()
-                    val description = document.getString("description").toString()
-                    val imageUri = document.getString("imageUri").toString()
+                val profiles = data.documents.mapNotNull { document ->
+                    val userId = document.id
 
-                    Profile(username, password, firstName, lastName, description, imageUri)
+                    if (userId == currentUserId) {
+                        null
+                    } else {
+                        val username = document.getString("username").toString()
+                        val password = document.getString("password").toString()
+                        val firstName = document.getString("firstName").toString()
+                        val lastName = document.getString("lastName").toString()
+                        val description = document.getString("description").toString()
+                        val imageUri = document.getString("imageUri").toString()
+
+                        Profile(username, password, firstName, lastName, description, imageUri)
+                    }
                 }
                 _allProfiles.value = profiles
             }
@@ -50,6 +56,7 @@ class ProfileRepository {
             throw ProfileRetrievalError("Retrieval-firebase-task was unsuccessful")
         }
     }
+
 
 
     suspend fun getProfile(userId: String) {

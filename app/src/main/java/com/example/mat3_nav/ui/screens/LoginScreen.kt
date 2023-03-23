@@ -30,6 +30,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFontLoader
+import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.*
@@ -82,31 +85,6 @@ fun LoginScreen(
                 .align(Alignment.BottomStart)
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp)
-                .verticalScroll(rememberScrollState())
-                .imePadding(),
-        ) {
-            Text(
-                text = "Welcome",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = quickSand,
-                color = Color.White,
-                modifier = Modifier.zIndex(1f)
-            )
-            Text(
-                text = "Back",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = quickSand,
-                color = Color.White,
-                modifier = Modifier.zIndex(1f)
-            )
-        }
-
 
         Column(
             modifier = Modifier
@@ -114,8 +92,28 @@ fun LoginScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Welcome",
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = quickSand,
+                    color = Color.White,
+                    modifier = Modifier.zIndex(1f)
+                )
+                Text(
+                    text = "Back",
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = quickSand,
+                    color = Color.White,
+                    modifier = Modifier.zIndex(1f)
+                )
+            }
             Spacer(modifier = Modifier.weight(1f))
 
 
@@ -182,34 +180,39 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(
-                onClick = {
-                    navController.navigate(NavScreens.CreateProfileScreen.route)
-                },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                TextButton(
+                    onClick = {
+                        navController.navigate(NavScreens.CreateProfileScreen.route)
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
                 ) {
-                    Text(
-                        text = "Don't have an account?",
-                        color = Color.LightGray.copy(alpha = 0.5f),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Sign up",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.LightGray,
-                    )
-                    Spacer(modifier = Modifier.width(4.dp)) // Add some space between text and icon
-                    Icon(
-                        Icons.Filled.ArrowForward,
-                        modifier = Modifier.size(16.dp),
-                        contentDescription = "Arrow forward",
-                        tint = Color.LightGray
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Don't have an account?",
+                            color = Color.LightGray.copy(alpha = 0.5f),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Sign up",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.LightGray,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp)) // Add some space between text and icon
+                        Icon(
+                            Icons.Filled.ArrowForward,
+                            modifier = Modifier.size(16.dp),
+                            contentDescription = "Arrow forward",
+                            tint = Color.LightGray
+                        )
+                    }
                 }
             }
 
@@ -313,6 +316,7 @@ fun CustomTextField(
     label: String,
     placeholder: String,
     isPassword: Boolean = false,
+    isMultiLine: Boolean = false,
 ) {
     val focusRequester = remember { FocusRequester() }
     val isFocused = remember { mutableStateOf(false) }
@@ -346,12 +350,19 @@ fun CustomTextField(
         TextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier
-                .focusRequester(focusRequester)
-                .weight(1f),
+            modifier = if (isMultiLine) {
+                Modifier
+                    .focusRequester(focusRequester)
+                    .weight(1f)
+                    .heightIn(min = 100.dp)
+            } else {
+                Modifier
+                    .focusRequester(focusRequester)
+                    .weight(1f)
+            },
             label = { Text(label) },
             placeholder = { Text(placeholder) },
-            singleLine = true,
+            singleLine = !isMultiLine,
             keyboardOptions = KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text),
             visualTransformation = if (isPassword && !passwordVisibility.value) PasswordVisualTransformation() else VisualTransformation.None,
             shape = RoundedCornerShape(8.dp),
@@ -390,6 +401,81 @@ fun CustomTextField(
             .background(if (isFocused.value) primaryColor else Color.LightGray)
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AutoSizableTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    fontSize: TextUnit = 32.sp,
+    maxLines: Int = Int.MAX_VALUE,
+    minFontSize: TextUnit,
+    scaleFactor: Float = 0.9f,
+    maxWords: Int = 256,
+) {
+    BoxWithConstraints(
+        modifier = modifier
+    ) {
+        var nFontSize = fontSize
+
+        val calculateParagraph = @Composable {
+            Paragraph(
+                text = value,
+                style = TextStyle(fontSize = nFontSize),
+                density = LocalDensity.current,
+                resourceLoader = LocalFontLoader.current,
+                maxLines = maxLines,
+                width = with(LocalDensity.current) { maxWidth.toPx() }
+            )
+        }
+
+        var intrinsics = calculateParagraph()
+        with(LocalDensity.current) {
+            while ((intrinsics.height.toDp() > maxHeight || intrinsics.didExceedMaxLines) && nFontSize >= minFontSize) {
+                nFontSize *= scaleFactor
+                intrinsics = calculateParagraph()
+            }
+        }
+
+        val adaptedFontSize = if (nFontSize < minFontSize) minFontSize else nFontSize
+
+        val wordCount = value.split("\\s+".toRegex()).count { it.isNotEmpty() }
+        val limitedValue = if (wordCount > maxWords) {
+            value.split(" ").take(maxWords).joinToString(" ")
+        } else {
+            value
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            OutlinedTextField(
+                value = limitedValue,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(8.dp),
+                maxLines = maxLines,
+                textStyle = TextStyle(fontSize = adaptedFontSize),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedTextColor = Color.White,
+                    focusedBorderColor = Color.White,
+                    cursorColor = Color.White
+                )
+            )
+
+            Text(
+                text = "$wordCount/$maxWords",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 8.dp)
+            )
+        }
+    }
+}
+
+
+
 
 
 

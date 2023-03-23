@@ -1,10 +1,13 @@
 package com.example.mat3_nav
 
+import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.WindowInsetsController
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -34,6 +37,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -53,6 +59,7 @@ import com.example.mat3_nav.model.Profile
 import kotlinx.coroutines.delay
 
 
+
 class MainActivity : ComponentActivity() {
     private val mainViewModel by viewModels<MainViewModel>()
 
@@ -61,6 +68,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         val isDarkTheme = resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+
         setContent {
             val context = LocalContext.current
             val userId = mainViewModel.userId.observeAsState().value
@@ -68,7 +76,7 @@ class MainActivity : ComponentActivity() {
             val counter = remember { mutableStateOf(0) }
 
             // Add this LaunchedEffect block
-            mainViewModel.fetchAllProfiles()
+            mainViewModel.fetchAllProfiles(context.getUserId())
             val profiles = mainViewModel.allProfiles.observeAsState().value
             //getProfile( context.getUserId() ) // get the user profile from the database
 
@@ -90,6 +98,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+
     }
 }
 
@@ -103,6 +112,7 @@ fun NavBarApp(
     context: Context = LocalContext.current,
     profiles: List<Profile>?,
 ) {
+
     val navController = rememberAnimatedNavController()
     val scope2 = LocalSharedElementsRootScope
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
@@ -407,6 +417,7 @@ fun BottomNav(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     BottomNavigation(
         backgroundColor = MaterialTheme.colorScheme.secondary,
         contentColor = MaterialTheme.colorScheme.onSecondary,
@@ -438,6 +449,13 @@ fun BottomNav(
                 },
                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                 onClick = {
+                    //close the keyboard
+                    val imm =
+                        context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(
+                        (context as Activity).currentFocus?.windowToken,
+                        InputMethodManager.HIDE_NOT_ALWAYS
+                    )
                     navController.navigate(screen.route) {
                         // Pop up to the start destination of the graph to
                         // avoid building up a large stack of destinations
@@ -463,7 +481,8 @@ private fun NavHostScreen(
     navController: NavHostController,
     hasCreatedProfile: MutableState<Boolean>,
     viewModel: MainViewModel,
-    profiles: List<Profile>?
+    profiles: List<Profile>?,
+    context: Context = LocalContext.current
 ) {
     val startDestination =
         if (hasCreatedProfile.value) NavScreens.HomeScreen.route else NavScreens.StartScreen.route
@@ -494,7 +513,7 @@ private fun NavHostScreen(
             },
         ) {
             LaunchedEffect(Unit) {
-                viewModel.fetchAllProfiles()
+                viewModel.fetchAllProfiles(context.getUserId())
             }
             if (profiles != null) {
                 AppHomeScreen(
@@ -527,7 +546,8 @@ private fun NavHostScreen(
             }
         ) {
             AppDetailScreen(
-                navController = navController
+                navController = navController,
+                viewModel = viewModel
             )
         }
 
