@@ -3,15 +3,14 @@ package com.example.mat3_nav.ui.screens
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
-import android.os.Build
-import android.provider.MediaStore
+import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.ButtonDefaults
@@ -23,21 +22,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import com.example.mat3_nav.R
 import com.example.mat3_nav.ui.theme.quickSand
 import com.example.mat3_nav.viewmodel.MainViewModel
-import java.lang.Float.max
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -225,102 +221,90 @@ fun CreateProfileScreen(
 
 @Composable
 fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
+    val avatars = listOf(
+        R.drawable.avatar_1,
+        R.drawable.avatar_2,
+        R.drawable.avatar_3,
+        R.drawable.avatar_4,
+        R.drawable.avatar_5,
+        R.drawable.avatar_6,
+        R.drawable.avatar_7,
+        R.drawable.avatar_8,
+        R.drawable.avatar_9,
+        R.drawable.avatar_10,
+        R.drawable.avatar_11,
+        R.drawable.avatar_12,
+        R.drawable.avatar_13,
+        R.drawable.avatar_14,
+        R.drawable.avatar_15,
+        R.drawable.avatar_16
+    )
 
-    val minScale = remember { mutableStateOf(1f) }
-    val maxScale = remember { mutableStateOf(3f) }
-    val scale = remember { mutableStateOf(1f) }
-    val imageSize = 150.dp
-    val offsetX = remember { mutableStateOf(0f) }
-    val offsetY = remember { mutableStateOf(0f) }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedAvatar by remember { mutableStateOf(avatars[0]) }
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        viewModel.imageUri = uri
-    }
+    viewModel.imageUri = Uri.parse("android.resource://${context.packageName}/$selectedAvatar")
 
-    LaunchedEffect(viewModel.imageUri) {
-        if (viewModel.imageUri != null) {
-            viewModel.bitmap.value = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val src = ImageDecoder.createSource(context.contentResolver, viewModel.imageUri!!)
-                ImageDecoder.decodeBitmap(src)
-            } else {
-                MediaStore.Images.Media.getBitmap(context.contentResolver, viewModel.imageUri)
-            }
-        }
-    }
-
-    if (viewModel.imageUri != null) {
-        // https://stackoverflow.com/questions/58903911/how-to-fix-deprecated-issue-in-android-bitmap
-
-        viewModel.bitmap.value?.let { btm ->
-            // Calculate the minimum scale to always fill the circle
-            minScale.value = max(imageSize.value / btm.width, imageSize.value / btm.height)
-
-
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 0.dp, vertical = 40.dp)
-                    .size(imageSize)
-                    .clip(CircleShape) // Clip the box to a circle
-                    .pointerInput(Unit) {
-                        detectTransformGestures { _, pan, zoom, _ ->
-                            // Apply the pan and zoom while maintaining a minimum scale and maximum scale
-                            scale.value =
-                                (scale.value * zoom).coerceIn(minScale.value, maxScale.value)
-
-                            // Limit pan offset
-                            val maxOffsetX = (btm.width * scale.value - imageSize.value) / 40
-                            val maxOffsetY = (btm.height * scale.value - imageSize.value) / 40
-                            offsetX.value =
-                                (offsetX.value + pan.x).coerceIn(-maxOffsetX, maxOffsetX)
-                            offsetY.value =
-                                (offsetY.value + pan.y).coerceIn(-maxOffsetY, maxOffsetY)
-                        }
-                    }
-            ) {
-                Image(
-                    bitmap = btm.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(imageSize)
-                        .graphicsLayer(
-                            translationX = offsetX.value,
-                            translationY = offsetY.value,
-                            scaleX = scale.value,
-                            scaleY = scale.value,
-                            transformOrigin = TransformOrigin(0.5f, 0.5f)
-                        )
-                )
-            }
-        }
-    } else {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 0.dp, vertical = 40.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
         Image(
-            painter = painterResource(id = R.drawable.baseline_account_box_24),
-            contentDescription = "Logo",
+            painter = painterResource(id = selectedAvatar),
+            contentDescription = "Selected Avatar",
             modifier = Modifier
-                .padding(horizontal = 0.dp, vertical = 40.dp)
                 .width(128.dp)
                 .height(128.dp)
+                .clip(CircleShape)
         )
+        Button(onClick = { expanded = !expanded }) {
+            Text("Select Avatar")
+        }
     }
-    Button(
-        onClick = { launcher.launch("image/*") },
-        colors = ButtonDefaults.buttonColors(
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            containerColor = Color.Black
-        )
-    )
-    {
-        Text(
-            text = context.getString(R.string.open_picture_gallery).uppercase()
-        )
+
+    if (expanded) {
+        Dialog(
+            onDismissRequest = { expanded = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .padding(18.dp),
+                shape = RoundedCornerShape(16.dp) // Add corner rounding
+            ) {
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .padding(18.dp),
+                    columns = GridCells.Fixed(4),
+                ) {
+                    items(avatars.size) { index ->
+                        val avatar = avatars[index]
+                        Column(
+                            modifier = Modifier
+                                .padding(6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Image(
+                                painter = painterResource(id = avatar),
+                                contentDescription = "Avatar",
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        selectedAvatar = avatar
+                                        viewModel.imageUri = Uri.parse("android.resource://${context.packageName}/$avatar")
+                                        expanded = false
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
-
-
-
-
 
 
 
