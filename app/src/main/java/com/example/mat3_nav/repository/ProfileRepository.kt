@@ -21,6 +21,37 @@ class ProfileRepository {
     private val _authenticationResult: MutableLiveData<Boolean> = MutableLiveData()
     val authenticationResult: LiveData<Boolean>
         get() = _authenticationResult
+
+    private val _allProfiles: MutableLiveData<List<Profile>> = MutableLiveData()
+    val allProfiles: LiveData<List<Profile>>
+        get() = _allProfiles
+
+
+    suspend fun getAllProfiles() {
+        try {
+            withTimeout(5_000) {
+                val data = profilesCollection
+                    .get()
+                    .await()
+
+                val profiles = data.documents.map { document ->
+                    val username = document.getString("username").toString()
+                    val password = document.getString("password").toString()
+                    val firstName = document.getString("firstName").toString()
+                    val lastName = document.getString("lastName").toString()
+                    val description = document.getString("description").toString()
+                    val imageUri = document.getString("imageUri").toString()
+
+                    Profile(username, password, firstName, lastName, description, imageUri)
+                }
+                _allProfiles.value = profiles
+            }
+        } catch (e: Exception) {
+            throw ProfileRetrievalError("Retrieval-firebase-task was unsuccessful")
+        }
+    }
+
+
     suspend fun getProfile(userId: String) {
         try {
             withTimeout(5_000) {

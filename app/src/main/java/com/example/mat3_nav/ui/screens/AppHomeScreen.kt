@@ -1,5 +1,6 @@
 package com.example.mat3_nav.ui.screens
 
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.Crossfade
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -48,6 +50,7 @@ import com.mxalbert.sharedelements.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mat3_nav.model.Profile
 
 
 @Composable
@@ -65,23 +68,34 @@ var previousSelectedUser: Int = -1
 fun UserCardsRoot(
     viewModel: MainViewModel
 ) {
+    val profiles = viewModel.allProfiles.value ?: emptyList()
+
+    println("size: ${profiles.size}")
+    val userss = profiles.map { it.firstName }
+    println("users: $userss")
+
+    val context = LocalContext.current
+
     SharedElementsRoot {
         val user = selectedUser
         val gridState = rememberLazyGridState()
 //        val scrollPosition = rememberLazyGridState(viewModel.scrollPosition)
         BackHandler(enabled = user >= 0) {
-            changeUser(-1)
+            changeUser(-1, profiles, context)
         }
         DelayExit(visible = user < 0) {
             UserCardsScreen(
                 listState1 = gridState,
-                viewModel = viewModel
+                viewModel = viewModel,
+                profiles = profiles,
+                context = context,
             )
         }
         DelayExit(visible = user >= 0) {
-            val currentUser = remember { users[user] }
+            val currentUser = remember { profiles[user] }
             UserCardDetailsScreen(
-                currentUser
+                currentUser,
+                context = context,
             )
         }
     }
@@ -89,7 +103,9 @@ fun UserCardsRoot(
 @Composable
 private fun UserCardsScreen(
     listState1: LazyGridState,
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    profiles: List<Profile>,
+    context: Context
 ) {
     val listState = rememberLazyGridState(viewModel.scrollPosition)
     LaunchedEffect(listState1) {
@@ -110,13 +126,13 @@ private fun UserCardsScreen(
             .padding(top = 64.dp, bottom = 56.dp)
 
     ) {
-        itemsIndexed(users) { i, user ->
+        itemsIndexed(profiles) { i, profile ->
             Box(
                 modifier = Modifier
                     .padding(4.dp)
             ) {
                 SharedMaterialContainer(
-                    key = user.name,
+                    key = profile.firstName,
                     screenKey = ListScreen,
                     shape = MaterialTheme.shapes.medium,
                     elevation = 2.dp,
@@ -126,18 +142,18 @@ private fun UserCardsScreen(
                         modifier = Modifier
                             .background(MaterialTheme.colorScheme.primary)
                             .clickable(enabled = !scope.isRunningTransition) {
-                                scope.changeUser(i)
+                                scope.changeUser(i, profiles, context)
                             }
 
                     ) {
                         Image(
-                            painterResource(id = user.avatar),
-                            contentDescription = user.name,
+                            painterResource(id = fileNameToDrawableId(context, profile.imageUri!!)),
+                            contentDescription = profile.firstName,
                             modifier = Modifier.fillMaxWidth(),
                             contentScale = ContentScale.Crop
                         )
                         Text(
-                            text = user.name,
+                            text = profile.firstName,
                             color = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
@@ -148,7 +164,10 @@ private fun UserCardsScreen(
     }
 }
 @Composable
-private fun UserCardDetailsScreen(user: User) {
+private fun UserCardDetailsScreen(
+    profile: Profile,
+    context: Context
+) {
     val (fraction, setFraction) = remember { mutableStateOf(1f) }
     // Scrim color
     val scope = LocalSharedElementsRootScope.current!!
@@ -157,7 +176,7 @@ private fun UserCardDetailsScreen(user: User) {
         color = Color.Black.copy(alpha = 0.32f * (1 - fraction))
     ) {
         SharedMaterialContainer(
-            key = user.name,
+            key = profile.firstName,
             screenKey = DetailsScreen,
             isFullscreen = true,
             transitionSpec = MaterialFadeOutTransitionSpec,
@@ -171,15 +190,16 @@ private fun UserCardDetailsScreen(user: User) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
-                        painterResource(id = user.avatar),
-                        contentDescription = user.name,
+                        painterResource(id = fileNameToDrawableId(context, profile.imageUri!!)),
+                        contentDescription = profile.firstName,
                         modifier = Modifier
                             .fillMaxWidth()
                             .draggable(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
                                     if (delta > 10f) {
-                                        scope.changeUser(-1)
+                                        //todo
+                                        scope.changeUser(-1, listOf(profile), context)
                                     }
                                 }
                             ),
@@ -189,7 +209,7 @@ private fun UserCardDetailsScreen(user: User) {
                         contentScale = ContentScale.Crop
                     )
                     Text(
-                        text = user.name,
+                        text = profile.firstName,
                         color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge
@@ -200,10 +220,13 @@ private fun UserCardDetailsScreen(user: User) {
     }
 }
 @Composable
-fun UserListRoot() {
+fun UserListRoot(
+    profiles: List<Profile>,
+    context: Context
+) {
     SharedElementsRoot {
         BackHandler(enabled = selectedUser >= 0) {
-            changeUser(-1)
+            changeUser(-1, profiles, context)
         }
 
         val listState = rememberLazyListState()
@@ -212,15 +235,19 @@ fun UserListRoot() {
             animationSpec = tween(durationMillis = TransitionDurationMillis)
         ) { user ->
             when {
-                user < 0 -> UserListScreen(listState)
-                else -> UserDetailsScreen(users[user])
+                user < 0 -> UserListScreen(listState, profiles, context)
+                else -> UserDetailsScreen(profiles[user], context)
             }
         }
     }
 }
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun UserListScreen(listState: LazyListState) {
+private fun UserListScreen(
+    listState: LazyListState,
+    profiles: List<Profile>,
+    context: Context
+) {
     LaunchedEffect(listState) {
         val previousIndex = previousSelectedUser.coerceAtLeast(0)
         if (!listState.layoutInfo.visibleItemsInfo.any { it.index == previousIndex }) {
@@ -229,22 +256,22 @@ private fun UserListScreen(listState: LazyListState) {
     }
     val scope = LocalSharedElementsRootScope.current!!
     LazyColumn(state = listState) {
-        itemsIndexed(users) { i, user ->
+        itemsIndexed(profiles) { i, profile ->
             ListItem(
                 modifier = Modifier.clickable(enabled = !scope.isRunningTransition) {
-                    scope.changeUser(i)
+                    scope.changeUser(i, profiles, context)
                 },
                 icon = {
                     SharedMaterialContainer(
-                        key = user.avatar,
+                        key = fileNameToDrawableId(context, profile.imageUri!!),
                         screenKey = ListScreen,
                         shape = CircleShape,
                         color = Color.Transparent,
                         transitionSpec = FadeOutTransitionSpec
                     ) {
                         Image(
-                            painterResource(id = user.avatar),
-                            contentDescription = user.name,
+                            painterResource(id = fileNameToDrawableId(context, profile.imageUri!!)),
+                            contentDescription = profile.firstName,
                             modifier = Modifier.size(48.dp),
                             contentScale = ContentScale.Crop
                         )
@@ -252,11 +279,11 @@ private fun UserListScreen(listState: LazyListState) {
                 },
                 text = {
                     SharedElement(
-                        key = user.name,
+                        key = profile.firstName,
                         screenKey = ListScreen,
                         transitionSpec = CrossFadeTransitionSpec
                     ) {
-                        Text(text = user.name)
+                        Text(text = profile.firstName)
                     }
                 }
             )
@@ -264,14 +291,17 @@ private fun UserListScreen(listState: LazyListState) {
     }
 }
 @Composable
-private fun UserDetailsScreen(user: User) {
+private fun UserDetailsScreen(
+    profile: Profile,
+    context: Context
+) {
     Column(
         Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SharedMaterialContainer(
-            key = user.avatar,
+            key = fileNameToDrawableId(context, profile.imageUri!!),
             screenKey = DetailsScreen,
             shape = MaterialTheme.shapes.medium,
             color = Color.Transparent,
@@ -280,55 +310,65 @@ private fun UserDetailsScreen(user: User) {
         ) {
             val scope = LocalSharedElementsRootScope.current!!
             Image(
-                painterResource(id = user.avatar),
-                contentDescription = user.name,
+                painterResource(id = fileNameToDrawableId(context, profile.imageUri!!)),
+                contentDescription = profile.firstName,
                 modifier = Modifier
                     .size(200.dp)
-                    .clickable(enabled = !scope.isRunningTransition) { scope.changeUser(-1) },
+                    .clickable(enabled = !scope.isRunningTransition) { scope.changeUser(-1, listOf(profile), context) },
                 contentScale = ContentScale.Crop
             )
         }
         SharedElement(
-            key = user.name,
+            key = profile.firstName,
             screenKey = DetailsScreen,
             transitionSpec = CrossFadeTransitionSpec
         ) {
-            Text(text = user.name, style = MaterialTheme.typography.bodyLarge)
+            Text(text = profile.firstName, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
-fun SharedElementsRootScope.changeUser(user: Int) {
+fun SharedElementsRootScope.changeUser(
+    user: Int,
+    profiles: List<Profile>,
+    context: Context
+) {
     val currentUser = selectedUser
     if (currentUser != user) {
         val targetUser = if (user >= 0) user else currentUser
         if (targetUser >= 0) {
-            users[targetUser].let {
-                prepareTransition(it.avatar, it.name)
+            profiles[targetUser].let {
+                prepareTransition(fileNameToDrawableId(context, it.imageUri!!), it.firstName)
             }
         }
         previousSelectedUser = selectedUser
         selectedUser = user
     }
 }
-private data class User(@DrawableRes val avatar: Int, val name: String)
-private val users = listOf(
-    User(R.drawable.avatar_1, "Adam"),
-    User(R.drawable.avatar_2, "Andrew"),
-    User(R.drawable.avatar_3, "Anna"),
-    User(R.drawable.avatar_4, "Boris"),
-    User(R.drawable.avatar_5, "Carl"),
-    User(R.drawable.avatar_6, "Donna"),
-    User(R.drawable.avatar_7, "Emily"),
-    User(R.drawable.avatar_8, "Fiona"),
-    User(R.drawable.avatar_9, "Grace"),
-    User(R.drawable.avatar_10, "Irene"),
-    User(R.drawable.avatar_11, "Jack"),
-    User(R.drawable.avatar_12, "Jake"),
-    User(R.drawable.avatar_13, "Mary"),
-    User(R.drawable.avatar_14, "Peter"),
-    User(R.drawable.avatar_15, "Rose"),
-    User(R.drawable.avatar_16, "Victor")
-)
+//private data class User(@DrawableRes val avatar: Int, val name: String)
+//
+//private val users = listOf(
+//    User(R.drawable.avatar_1, "Adam"),
+//    User(R.drawable.avatar_2, "Andrew"),
+//    User(R.drawable.avatar_3, "Anna"),
+//    User(R.drawable.avatar_4, "Boris"),
+//    User(R.drawable.avatar_5, "Carl"),
+//    User(R.drawable.avatar_6, "Donna"),
+//    User(R.drawable.avatar_7, "Emily"),
+//    User(R.drawable.avatar_8, "Fiona"),
+//    User(R.drawable.avatar_9, "Grace"),
+//    User(R.drawable.avatar_10, "Irene"),
+//    User(R.drawable.avatar_11, "Jack"),
+//    User(R.drawable.avatar_12, "Jake"),
+//    User(R.drawable.avatar_13, "Mary"),
+//    User(R.drawable.avatar_14, "Peter"),
+//    User(R.drawable.avatar_15, "Rose"),
+//    User(R.drawable.avatar_16, "Victor")
+//)
+
+fun fileNameToDrawableId(context: Context, fileName: String): Int {
+    println("fileNameToDrawableId: $fileName")
+    return context.resources.getIdentifier(fileName, "drawable", context.packageName)
+}
 
 private const val ListScreen = "list"
 const val DetailsScreen = "peopleDetails"

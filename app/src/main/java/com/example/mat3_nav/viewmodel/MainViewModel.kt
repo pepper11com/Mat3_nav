@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,6 +22,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
     fun onScrollPositionChanged(position: Int) {
         scrollPosition = position
     }
+    private val _selectedUser = mutableStateOf(-1)
+    val selectedUser: State<Int> = _selectedUser
+
+    private val _previousSelectedUser = mutableStateOf(-1)
+    val previousSelectedUser: State<Int> = _previousSelectedUser
+
+    // Other properties and methods
+
+    fun setSelectedUser(value: Int) {
+        _selectedUser.value = value
+    }
+
 
     private val TAG = "FIRESTORE"
     private val profileRepository: ProfileRepository = ProfileRepository()
@@ -40,6 +53,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
     private val _userId: MutableLiveData<String?> = MutableLiveData()
     val userId: LiveData<String?>
         get() = _userId
+
+    val allProfiles: LiveData<List<Profile>>
+        get() = profileRepository.allProfiles
+
+
+    init {
+        fetchAllProfiles()
+    }
+
+    fun fetchAllProfiles() {
+        viewModelScope.launch {
+            try {
+                profileRepository.getAllProfiles()
+            } catch (ex: ProfileRepository.ProfileRetrievalError) {
+                val errorMsg = "Something went wrong while retrieving all profiles"
+                Log.e(TAG, ex.message ?: errorMsg)
+                _errorText.value = errorMsg
+            }
+        }
+    }
+
+
 
     fun authenticate(username: String, password: String, setLoading: (Boolean) -> Unit) {
         setLoading(true)
