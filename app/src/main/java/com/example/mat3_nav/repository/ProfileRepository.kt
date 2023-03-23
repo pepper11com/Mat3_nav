@@ -110,9 +110,20 @@ class ProfileRepository {
         }
     }
 
-    fun logout() {
+    suspend fun logout(userId: String) {
         _profile.value?.userId = null
         _profile.postValue(_profile.value)
+        println("Logged out!!!!!!!!!!!!!!!")
+        try {
+            withTimeout(5_000) {
+                profilesCollection
+                    .document(userId)
+                    .update("userId", null)
+                    .await()
+            }
+        } catch (e: Exception) {
+            throw ProfileUpdateError(e.message.toString(), e)
+        }
     }
 
     class ProfileUpdateError(message: String, cause: Throwable) : Exception(message, cause)

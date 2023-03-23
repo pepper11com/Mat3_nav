@@ -98,7 +98,7 @@ fun CreateProfileScreen(
                 .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(3f))
             PickImageFromGallery(context, viewModel)
             Spacer(modifier = Modifier.height(16.dp))
             CustomTextField(
@@ -240,28 +240,36 @@ fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
         R.drawable.avatar_16
     )
 
+    var drawableToString = { drawable: Int ->
+        context.resources.getResourceEntryName(drawable)
+    }
+
     var expanded by remember { mutableStateOf(false) }
+
+    // jsut get the file name of the image and store it in the database as a string
     var selectedAvatar by remember { mutableStateOf(avatars[0]) }
 
-    viewModel.imageUri = Uri.parse("android.resource://${context.packageName}/$selectedAvatar")
+    //doesnt have to be uri, can be string
+    viewModel.imageUri = drawableToString(selectedAvatar)
 
     Row(
         modifier = Modifier
-            .padding(horizontal = 0.dp, vertical = 40.dp)
             .fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(id = selectedAvatar),
             contentDescription = "Selected Avatar",
             modifier = Modifier
-                .width(128.dp)
-                .height(128.dp)
+                .width(64.dp)
+                .height(64.dp)
                 .clip(CircleShape)
+                .clickable(onClick = { expanded = !expanded })
         )
-        Button(onClick = { expanded = !expanded }) {
-            Text("Select Avatar")
-        }
+//        Button(onClick = { expanded = !expanded }) {
+//            Text("Select Avatar")
+//        }
     }
 
     if (expanded) {
@@ -279,6 +287,7 @@ fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
                         .padding(18.dp),
                     columns = GridCells.Fixed(4),
                 ) {
+                    //todo store the choses avatars file name in the database as a string so like avatar_1 or avatar_2 and dont make it a uri
                     items(avatars.size) { index ->
                         val avatar = avatars[index]
                         Column(
@@ -294,7 +303,8 @@ fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
                                     .clip(CircleShape)
                                     .clickable {
                                         selectedAvatar = avatar
-                                        viewModel.imageUri = Uri.parse("android.resource://${context.packageName}/$avatar")
+                                        viewModel.imageUri = drawableToString(avatar)
+                                            .toString()
                                         expanded = false
                                     }
                             )

@@ -24,7 +24,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
 
     private val TAG = "FIRESTORE"
     private val profileRepository: ProfileRepository = ProfileRepository()
-    var imageUri by mutableStateOf<Uri?>(null)
+    var imageUri by mutableStateOf<String?>(null)
     val bitmap = mutableStateOf<Bitmap?>(null)
     val profile: LiveData<Profile> = profileRepository.profile
     val createSuccess: LiveData<Boolean> = profileRepository.createSuccess
@@ -50,6 +50,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
                 _authenticationResult.value = true
 
                 setUserId(userId)
+                getProfile(userId)
                 setLoading(false)
             } else {
                 _authenticationResult.value = false
@@ -57,14 +58,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
-    fun getProfile() {
+
+
+    fun getProfile(userId: String) {
         viewModelScope.launch {
             try {
-                profileRepository.getProfile(
-                    _userId.value ?: throw ProfileRepository.ProfileRetrievalError(
-                        "No user id found"
-                    )
-                )
+                profileRepository.getProfile(userId)
             } catch (ex: ProfileRepository.ProfileRetrievalError) {
                 val errorMsg = "Something went wrong while retrieving profile"
                 Log.e(TAG, ex.message ?: errorMsg)
@@ -72,6 +71,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
+
     fun setUserId(userId: String) {
         _userId.value = userId // This line will update the userId LiveData
 
@@ -104,8 +104,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
-    fun logout() {
-        profileRepository.logout()
+    fun logout(userId1: String) {
+
+        //set the userId to null
+        _userId.value = null
+
+        println("USERID:  $userId")
+
+        viewModelScope.launch {
+            try {
+                profileRepository.logout(userId1)
+            } catch (ex: ProfileRepository.ProfileUpdateError) {
+                val errorMsg = "Something went wrong while updating the userId"
+                Log.e(TAG, ex.message ?: errorMsg)
+                _errorText.value = errorMsg
+            }
+        }
     }
     fun reset() {
         _errorText.value = ""
