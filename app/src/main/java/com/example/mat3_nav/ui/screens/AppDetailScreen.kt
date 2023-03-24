@@ -3,6 +3,7 @@ package com.example.mat3_nav.ui.screens
 import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
@@ -41,8 +42,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.example.mat3_nav.BottomDrawer
+import com.example.mat3_nav.model.Profile
+import com.example.mat3_nav.repository.ProfileRepository
+import com.example.mat3_nav.util.PasswordUtils
 import com.example.mat3_nav.viewmodel.MainViewModel
 import com.google.accompanist.insets.navigationBarsWithImePadding
 import com.google.android.material.progressindicator.CircularProgressIndicator
@@ -55,7 +60,8 @@ fun AppDetailScreen(
     viewModel: MainViewModel
 ) {
     val currentProfile by viewModel.profile.observeAsState()
-
+    val snackbarError = remember { mutableStateOf("") }
+    val showSnackbar = remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -63,13 +69,30 @@ fun AppDetailScreen(
             .fillMaxSize()
     ) {
         currentProfile?.let { profile ->
+
+            if (showSnackbar.value) {
+                Snackbar(
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                    action = {
+                        TextButton(onClick = { showSnackbar.value = false }) {
+                            Text("Dismiss")
+                        }
+                    },
+                    dismissAction = { showSnackbar.value = false }
+                ) {
+                    Text(snackbarError.value)
+                }
+            }
+
             val username = remember { mutableStateOf(TextFieldValue(profile.username)) }
             val firstName = remember { mutableStateOf(TextFieldValue(profile.firstName)) }
             val lastName = remember { mutableStateOf(TextFieldValue(profile.lastName)) }
-            //if there is no description, set it to an empty string
             val description = remember { mutableStateOf(TextFieldValue(profile.description ?: "")) }
 
 
+            val currentPassword = remember { mutableStateOf(TextFieldValue("")) }
+            val newPassword = remember { mutableStateOf(TextFieldValue("")) }
+            val showChangePasswordDialog = remember { mutableStateOf(false) }
 
             val showUsernameDialog = remember { mutableStateOf(false) }
             val showFirstNameDialog = remember { mutableStateOf(false) }
@@ -160,45 +183,116 @@ fun AppDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
 
-                        CustomTextFieldClickable(
-                            icon = Icons.Filled.PersonOutline,
-                            value = description.value,
-                            onValueChange = { description.value = it },
-                            label = "Description",
-                            placeholder = "Enter your description",
-                            onClick = { showDescriptionDialog.value = true },
-                        )
-                        OverlayDialog(
-                            showDialog = showDescriptionDialog,
-                            title = "Enter your description",
-                            value = description.value,
-                            onValueChange = { description.value = it },
-                            label = "Description",
-                            placeholder = "Enter your description",
-                            onDismissRequest = { showDescriptionDialog.value = false },
-                            onOkClicked = {
-                                // Set the description that was entered in the dialog to the description field
-                                description.value = description.value
-                                showDescriptionDialog.value = false
-                            },
-                        )
+                    CustomTextFieldClickable(
+                        icon = Icons.Filled.PersonOutline,
+                        value = description.value,
+                        onValueChange = { description.value = it },
+                        label = "Description",
+                        placeholder = "Enter your description",
+                        onClick = { showDescriptionDialog.value = true },
+                    )
+                    OverlayDialog(
+                        showDialog = showDescriptionDialog,
+                        title = "Enter your description",
+                        value = description.value,
+                        onValueChange = { description.value = it },
+                        label = "Description",
+                        placeholder = "Enter your description",
+                        onDismissRequest = { showDescriptionDialog.value = false },
+                        onOkClicked = {
+                            // Set the description that was entered in the dialog to the description field
+                            description.value = description.value
+                            showDescriptionDialog.value = false
+                        },
+                    )
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    CustomTextFieldClickable(
+                        icon = Icons.Filled.Lock,
+                        value = if (newPassword.value.text.isEmpty()) TextFieldValue("******") else newPassword.value,
+                        onValueChange = { },
+                        label = "Change Password",
+                        placeholder = "",
+                        onClick = { showChangePasswordDialog.value = true },
+                        isPassword = false,
+                        isPasswordTransformation = true // Set this to true
+                    )
+                    OverlayDialog(
+                        showDialog = showChangePasswordDialog,
+                        title = "Change Password",
+                        value = currentPassword.value,
+                        onValueChange = { currentPassword.value = it },
+                        label = "Current Password",
+                        placeholder = "Enter your current password",
+                        onDismissRequest = { showChangePasswordDialog.value = false },
+                        onOkClicked = { newPass ->
+                            // Set the new password value here
+                            newPassword.value = newPass
+                            showChangePasswordDialog.value = false
+                        },
+                        oldPassword = currentPassword,
+                        newPassword = newPassword
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
                         modifier = Modifier
                             .fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
+                        colors =  ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF006BFF),
                             contentColor = Color.White
                         ),
                         onClick = {
                             // Handle save/update profile logic here
+                            viewModel.viewModelScope.launch {
+                                try {
+                                    // Check if the old password is correct
+                                    val isOldPasswordCorrect = PasswordUtils.verifyPassword(
+                                        currentPassword.value.text,
+                                        profile.password
+                                    )
+
+                                    if (isOldPasswordCorrect) {
+                                        // Update the profile with the new values
+                                        val updatedProfile = Profile(
+                                            username = username.value.text,
+                                            password = if (newPassword.value.text.isNotEmpty()) {
+                                                PasswordUtils.hashPassword(newPassword.value.text)
+                                            } else {
+                                                profile.password
+                                            },
+                                            firstName = firstName.value.text,
+                                            lastName = lastName.value.text,
+                                            description = description.value.text,
+                                            imageUri = profile.imageUri,
+                                            userId = profile.userId
+                                        )
+                                        //print it to the console in red
+
+                                        println("Updated profile: $updatedProfile")
+                                        println("profile.userId: ${profile.userId}")
+
+                                        profile.userId?.let { viewModel.updateProfile(it, updatedProfile) }
+                                    } else {
+                                        // Show an error message if the old password is incorrect
+                                        // You can use a Snackbar or a Toast to display the error message
+                                        // Show an error message if the old password is incorrect
+                                        snackbarError.value = "Incorrect old password"
+                                        showSnackbar.value = true
+                                    }
+                                } catch (e: ProfileRepository.ProfileUpdateError) {
+                                    // Handle profile update error
+                                    snackbarError.value = "Something went wrong while updating the profile"
+                                    showSnackbar.value = true
+                                }
+                            }
                         }
                     ) {
                         Text(text = "Save")
                     }
+
                 }
             }
         } ?: run {
@@ -217,6 +311,7 @@ fun CustomTextFieldClickable(
     placeholder: String,
     onClick: () -> Unit,
     isPassword: Boolean = false,
+    isPasswordTransformation: Boolean = false, // Add this parameter
     isMultiLine: Boolean = false,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -272,7 +367,7 @@ fun CustomTextFieldClickable(
             placeholder = { Text(placeholder) },
             singleLine = !isMultiLine,
             keyboardOptions = KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text),
-            visualTransformation = if (isPassword && !passwordVisibility.value) PasswordVisualTransformation() else VisualTransformation.None,
+            visualTransformation = if (isPasswordTransformation) PasswordVisualTransformation() else VisualTransformation.None,
             shape = RoundedCornerShape(8.dp),
             colors = TextFieldDefaults.textFieldColors(
                 focusedIndicatorColor = Color.Transparent,
@@ -321,14 +416,16 @@ fun OverlayDialog(
     placeholder: String,
     isMultiLine: Boolean = true,
     onDismissRequest: () -> Unit,
-    onOkClicked: () -> Unit
+    onOkClicked: (TextFieldValue) -> Unit,
+    oldPassword: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue("")),
+    newPassword: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue("")),
 ) {
     val localFocus = LocalFocusManager.current
-
     val resetFocus = {
         onDismissRequest()
         localFocus.clearFocus(force = true)
     }
+
 
     if (showDialog.value) {
         Dialog(
@@ -372,7 +469,7 @@ fun OverlayDialog(
                 actions = {
                     IconButton(onClick = {
                         resetFocus()
-                        onOkClicked()
+                        onOkClicked(if (title == "Change Password") newPassword.value else value)
                     }) {
                         Text(
                             text = "OK",
@@ -399,24 +496,49 @@ fun OverlayDialog(
 
                     Spacer(modifier = Modifier.height(46.dp))
 
-                    val focusRequester = remember { FocusRequester() } // Add this line
-                    LaunchedEffect(showDialog.value) {
-                        focusRequester.requestFocus()
+                    if (title == "Change Password") {
+                        val focusRequester1 = remember { FocusRequester() }
+                        val focusRequester2 = remember { FocusRequester() }
 
-                        // Set the cursor position to the end of the text
-                        onValueChange(value.copy(selection = TextRange(value.text.length)))
+                        CustomTextField(
+                            value = oldPassword.value,
+                            onValueChange = { oldPassword.value = it },
+                            label = "Old Password",
+                            placeholder = "Enter your current password",
+                            isPassword = true,
+                            focusRequester = focusRequester1
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        CustomTextField(
+                            value = newPassword.value,
+                            onValueChange = { newPassword.value = it },
+                            label = "New Password",
+                            placeholder = "Enter your new password",
+                            isPassword = true,
+                            focusRequester = focusRequester2
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                    } else {
+                        val focusRequester = remember { FocusRequester() }
+                        LaunchedEffect(showDialog.value) {
+                            focusRequester.requestFocus()
+                            onValueChange(value.copy(selection = TextRange(value.text.length)))
+                        }
+
+                        CustomTextField(
+                            value = value,
+                            onValueChange = onValueChange,
+                            label = label,
+                            placeholder = placeholder,
+                            isMultiLine = true,
+                            focusRequester = focusRequester
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-
-                    CustomTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        label = label,
-                        placeholder = placeholder,
-                        isMultiLine = true,
-                        focusRequester = focusRequester
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
 
                 }
             }

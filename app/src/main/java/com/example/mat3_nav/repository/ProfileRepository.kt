@@ -73,8 +73,9 @@ class ProfileRepository {
                 val lastName = data.getString("lastName").toString()
                 val description = data.getString("description").toString()
                 val imageUri = data.getString("imageUri").toString()
+                val userIdCurrent = data.getString("userId").toString()
 
-                _profile.value = Profile(username, password, firstName, lastName, description, imageUri)
+                _profile.value = Profile(username, password, firstName, lastName, description, imageUri, userIdCurrent)
             }
         } catch (e: Exception) {
             throw ProfileRetrievalError("Retrieval-firebase-task was unsuccessful")
@@ -130,6 +131,20 @@ class ProfileRepository {
         }
     }
 
+    suspend fun updateProfile(userId: String, updatedProfile: Profile) {
+        try {
+            withTimeout(5_000) {
+                profilesCollection
+                    .document(userId)
+                    .set(updatedProfile)
+                    .await()
+            }
+        } catch (e: Exception) {
+            throw ProfileUpdateError(e.message.toString(), e)
+        }
+    }
+
+
 
     suspend fun setUserId(userId: String) {
         _profile.value?.userId = userId
@@ -170,6 +185,9 @@ class ProfileRepository {
     fun reset() {
         _createSuccess.value = false
     }
+
+
+
     class ProfileSaveError(message: String, cause: Throwable) : Exception(message, cause)
     class ProfileRetrievalError(message: String) : Exception(message)
     class ProfileAuthenticationError(message: String, cause: Throwable) : Exception(message, cause)

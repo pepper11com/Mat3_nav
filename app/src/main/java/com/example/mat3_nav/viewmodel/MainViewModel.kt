@@ -57,11 +57,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
     val allProfiles: LiveData<List<Profile>>
         get() = profileRepository.allProfiles
 
-
     init {
         fetchAllProfiles()
     }
-
     fun fetchAllProfiles(userId: String? = null) {
         viewModelScope.launch {
             try {
@@ -75,9 +73,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
-
-
-
 
     fun authenticate(username: String, password: String, setLoading: (Boolean) -> Unit) {
         setLoading(true)
@@ -96,6 +91,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
+
+    fun updateProfile(userId: String, updatedProfile: Profile) {
+        viewModelScope.launch {
+            try {
+                profileRepository.updateProfile(userId, updatedProfile)
+            } catch (ex: ProfileRepository.ProfileUpdateError) {
+                // Handle profile update error
+                // You can use a Snackbar or a Toast to display the error message
+                val errorMsg = "Something went wrong while updating the profile"
+                Log.e(TAG, ex.message ?: errorMsg)
+            }
+        }
+    }
+
 
 
     fun getProfile(userId: String) {
