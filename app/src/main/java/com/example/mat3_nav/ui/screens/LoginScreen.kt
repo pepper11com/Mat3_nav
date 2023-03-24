@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFontLoader
 import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
@@ -120,7 +121,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            CustomTextField(
+            CustomTextField2(
                 icon = Icons.Filled.Email,
                 value = username,
                 onValueChange = { username = it },
@@ -131,7 +132,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            CustomTextField(
+            CustomTextField2(
                 icon = Icons.Filled.Lock,
                 value = password,
                 onValueChange = { password = it },
@@ -310,15 +311,129 @@ fun Modifier.wavyClipPath(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomTextField(
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    label: String,
+    placeholder: String,
+    isPassword: Boolean = false,
+    isMultiLine: Boolean = false,
+    focusRequester: FocusRequester? = null,
+) {
+    val focusRequester1 = remember { FocusRequester() }
+    val isFocused = remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val passwordVisibility = remember { mutableStateOf(false) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is FocusInteraction.Focus -> isFocused.value = true
+                is FocusInteraction.Unfocus -> isFocused.value = false
+            }
+        }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (icon != null) {
+            Icon(
+                icon,
+                modifier = Modifier
+                    .padding(top = 5.dp)
+                    .size(26.dp),
+                contentDescription = "Login icon",
+                tint = if (isFocused.value) primaryColor else Color.LightGray
+            )
+        }
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = if (isMultiLine) {
+                if (focusRequester != null) {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .weight(1f)
+                        .heightIn(min = 100.dp)
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester1)
+                        .heightIn(min = 100.dp)
+                }
+            } else {
+                if (focusRequester != null) {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .weight(1f)
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester1)
+                }
+            },
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            singleLine = !isMultiLine,
+            keyboardOptions = KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text),
+            visualTransformation = if (isPassword && !passwordVisibility.value) PasswordVisualTransformation() else VisualTransformation.None,
+            shape = RoundedCornerShape(8.dp),
+            colors = TextFieldDefaults.textFieldColors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                containerColor = Color.Transparent
+            ),
+            interactionSource = interactionSource,
+            textStyle = TextStyle(
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+        )
+
+        if (isPassword) {
+            IconButton(
+                modifier = Modifier
+                    .padding(end = 4.dp),
+                onClick = { passwordVisibility.value = !passwordVisibility.value }
+            ) {
+                Icon(
+                    imageVector = if (passwordVisibility.value) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = "Toggle password visibility",
+                    tint = if (isFocused.value) primaryColor else Color.LightGray
+                )
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(4.dp))
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(if (isFocused.value) primaryColor else Color.LightGray)
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomTextField2(
+    icon: ImageVector? = null,
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
     isPassword: Boolean = false,
     isMultiLine: Boolean = false,
+    focusRequester: FocusRequester? = null,
 ) {
-    val focusRequester = remember { FocusRequester() }
+    val focusRequester1 = remember { FocusRequester() }
     val isFocused = remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val passwordVisibility = remember { mutableStateOf(false) }
@@ -338,27 +453,42 @@ fun CustomTextField(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Icon(
-            icon,
-            modifier = Modifier
-                .padding(top = 5.dp)
-                .size(26.dp),
-            contentDescription = "Login icon",
-            tint = if (isFocused.value) primaryColor else Color.LightGray
-        )
+        if (icon != null) {
+            Icon(
+                icon,
+                modifier = Modifier
+                    .padding(top = 5.dp)
+                    .size(26.dp),
+                contentDescription = "Login icon",
+                tint = if (isFocused.value) primaryColor else Color.LightGray
+            )
+        }
 
         TextField(
             value = value,
             onValueChange = onValueChange,
             modifier = if (isMultiLine) {
-                Modifier
-                    .focusRequester(focusRequester)
-                    .weight(1f)
-                    .heightIn(min = 100.dp)
+                if (focusRequester != null) {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .weight(1f)
+                        .heightIn(min = 100.dp)
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester1)
+                        .heightIn(min = 100.dp)
+                }
             } else {
-                Modifier
-                    .focusRequester(focusRequester)
-                    .weight(1f)
+                if (focusRequester != null) {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .weight(1f)
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester1)
+                }
             },
             label = { Text(label) },
             placeholder = { Text(placeholder) },
@@ -405,15 +535,33 @@ fun CustomTextField(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutoSizableTextField(
+    icon: ImageVector,
     value: String,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    fontSize: TextUnit = 32.sp,
+    label: String,
+    placeholder: String,
+    isMultiLine: Boolean = false,
+    fontSize: TextUnit = 22.sp,
     maxLines: Int = Int.MAX_VALUE,
     minFontSize: TextUnit,
     scaleFactor: Float = 0.9f,
     maxWords: Int = 256,
+    modifier: Modifier = Modifier
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val isFocused = remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is FocusInteraction.Focus -> isFocused.value = true
+                is FocusInteraction.Unfocus -> isFocused.value = false
+            }
+        }
+    }
+
     BoxWithConstraints(
         modifier = modifier
     ) {
@@ -429,7 +577,6 @@ fun AutoSizableTextField(
                 width = with(LocalDensity.current) { maxWidth.toPx() }
             )
         }
-
         var intrinsics = calculateParagraph()
         with(LocalDensity.current) {
             while ((intrinsics.height.toDp() > maxHeight || intrinsics.didExceedMaxLines) && nFontSize >= minFontSize) {
@@ -437,38 +584,78 @@ fun AutoSizableTextField(
                 intrinsics = calculateParagraph()
             }
         }
-
         val adaptedFontSize = if (nFontSize < minFontSize) minFontSize else nFontSize
-
         val wordCount = value.split("\\s+".toRegex()).count { it.isNotEmpty() }
-        val limitedValue = if (wordCount > maxWords) {
-            value.split(" ").take(maxWords).joinToString(" ")
-        } else {
-            value
-        }
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            OutlinedTextField(
-                value = limitedValue,
-                onValueChange = onValueChange,
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(8.dp),
-                maxLines = maxLines,
-                textStyle = TextStyle(fontSize = adaptedFontSize),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedTextColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    cursorColor = Color.White
-                )
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
 
-            Text(
-                text = "$wordCount/$maxWords",
-                fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.8f),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 4.dp, end = 8.dp)
+                    .fillMaxWidth()
+            ) {
+                Icon(
+                    icon,
+                    modifier = Modifier
+                        .padding(top = 5.dp)
+                        .size(26.dp),
+                    contentDescription = "TextField icon",
+                    tint = if (isFocused.value) primaryColor else Color.LightGray
+                )
+                if (wordCount > 0) {
+                    Text(
+                        text = "$wordCount/$maxWords",
+                        modifier = Modifier.padding(end = 4.dp),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (wordCount > maxWords) Color.Red else Color.LightGray
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = value,
+                onValueChange = { newValue ->
+                    val newWordCount = newValue.split("\\s+".toRegex()).count { it.isNotEmpty() }
+                    if (newWordCount <= maxWords) {
+                        onValueChange(newValue)
+                    }
+                },
+                modifier = if (isMultiLine) {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .weight(1f)
+                        .height(450.dp)
+                        .fillMaxWidth()
+                } else {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .weight(1f)
+                        .fillMaxWidth()
+                },
+                label = { Text(label) },
+                placeholder = { Text(placeholder) },
+                singleLine = !isMultiLine,
+                shape = RoundedCornerShape(8.dp),
+                colors = TextFieldDefaults.textFieldColors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    containerColor = Color.Transparent
+                ),
+                interactionSource = interactionSource,
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = adaptedFontSize
+                ),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(if (isFocused.value) primaryColor else Color.LightGray)
             )
         }
     }

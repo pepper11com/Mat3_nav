@@ -101,7 +101,7 @@ fun CreateProfileScreen(
             Spacer(modifier = Modifier.weight(3f))
             PickImageFromGallery(context, viewModel)
             Spacer(modifier = Modifier.height(16.dp))
-            CustomTextField(
+            CustomTextField2(
                 icon = Icons.Filled.Person,
                 value = username,
                 onValueChange = { username = it },
@@ -109,7 +109,7 @@ fun CreateProfileScreen(
                 placeholder = "Enter your username"
             )
             Spacer(modifier = Modifier.height(8.dp))
-            CustomTextField(
+            CustomTextField2(
                 icon = Icons.Filled.Lock,
                 value = password,
                 onValueChange = { password = it },
@@ -118,7 +118,7 @@ fun CreateProfileScreen(
                 isPassword = true
             )
             Spacer(modifier = Modifier.height(8.dp))
-            CustomTextField(
+            CustomTextField2(
                 icon = Icons.Filled.PersonOutline,
                 value = firstName,
                 onValueChange = { firstName = it },
@@ -126,7 +126,7 @@ fun CreateProfileScreen(
                 placeholder = "Enter your first name"
             )
             Spacer(modifier = Modifier.height(8.dp))
-            CustomTextField(
+            CustomTextField2(
                 icon = Icons.Filled.PersonOutline,
                 value = lastName,
                 onValueChange = { lastName = it },
@@ -134,7 +134,7 @@ fun CreateProfileScreen(
                 placeholder = "Enter your last name"
             )
             Spacer(modifier = Modifier.height(8.dp))
-            CustomTextField(
+            CustomTextField2(
                 icon = Icons.Filled.Description,
                 value = profileDescription,
                 onValueChange = { profileDescription = it },
