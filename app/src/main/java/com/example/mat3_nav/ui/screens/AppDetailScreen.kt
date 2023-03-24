@@ -1,12 +1,17 @@
 package com.example.mat3_nav.ui.screens
 
 import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -16,24 +21,32 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import com.example.mat3_nav.BottomDrawer
 import com.example.mat3_nav.viewmodel.MainViewModel
 import com.google.accompanist.insets.navigationBarsWithImePadding
 import com.google.android.material.progressindicator.CircularProgressIndicator
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -297,6 +310,7 @@ fun CustomTextFieldClickable(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OverlayDialog(
     showDialog: MutableState<Boolean>,
@@ -309,29 +323,71 @@ fun OverlayDialog(
     onDismissRequest: () -> Unit,
     onOkClicked: () -> Unit
 ) {
-
     if (showDialog.value) {
         Dialog(
-            onDismissRequest = onDismissRequest
+            onDismissRequest = onDismissRequest,
+            properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
+            TopAppBar(
+                modifier = Modifier
+                    .zIndex(10f)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 0.dp,
+                            topEnd = 0.dp,
+                            bottomStart = 16.dp,
+                            bottomEnd = 16.dp
+                        )
+                    ),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    scrolledContainerColor = MaterialTheme.colorScheme.secondary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
+                ),
+                navigationIcon = {
+                    IconButton(onClick = onDismissRequest) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+                },
+                title = {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSecondary
+                    )
+                },
+                actions = {
+                    IconButton(onClick = onOkClicked) {
+                        Text(
+                            text = "OK",
+                            color = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+
+                }
+            )
+
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(0.dp)
+                    .padding(0.dp, top = 56.dp, bottom = 0.dp, end = 0.dp)
                 ,
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                 ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Spacer(modifier = Modifier.height(46.dp))
 
                     val focusRequester = remember { FocusRequester() } // Add this line
                     LaunchedEffect(showDialog.value) {
@@ -352,32 +408,6 @@ fun OverlayDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-
-                        OutlinedButton(
-                            onClick = onDismissRequest,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            )
-                        ) {
-                            Text("Back")
-                        }
-
-                        Button(
-                            onClick = {
-                                onOkClicked()
-                                focusRequester.requestFocus() // Add this line
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text("OK")
-                        }
-                    }
                 }
             }
         }
