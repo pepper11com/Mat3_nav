@@ -323,9 +323,16 @@ fun OverlayDialog(
     onDismissRequest: () -> Unit,
     onOkClicked: () -> Unit
 ) {
+    val localFocus = LocalFocusManager.current
+
+    val resetFocus = {
+        onDismissRequest()
+        localFocus.clearFocus(force = true)
+    }
+
     if (showDialog.value) {
         Dialog(
-            onDismissRequest = onDismissRequest,
+            onDismissRequest = resetFocus,
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             TopAppBar(
@@ -347,7 +354,7 @@ fun OverlayDialog(
                     actionIconContentColor = MaterialTheme.colorScheme.onSecondary,
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onDismissRequest) {
+                    IconButton(onClick = resetFocus) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
@@ -363,7 +370,10 @@ fun OverlayDialog(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onOkClicked) {
+                    IconButton(onClick = {
+                        resetFocus()
+                        onOkClicked()
+                    }) {
                         Text(
                             text = "OK",
                             color = MaterialTheme.colorScheme.onSecondary
