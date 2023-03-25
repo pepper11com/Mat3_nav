@@ -5,8 +5,11 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -22,11 +25,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
@@ -35,6 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -51,6 +58,9 @@ import com.example.mat3_nav.util.PasswordUtils
 import com.example.mat3_nav.viewmodel.MainViewModel
 import com.google.accompanist.insets.navigationBarsWithImePadding
 import com.google.android.material.progressindicator.CircularProgressIndicator
+import com.radusalagean.infobarcompose.InfoBar
+import com.radusalagean.infobarcompose.InfoBarMessage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -59,36 +69,50 @@ fun AppDetailScreen(
     navController: NavController,
     viewModel: MainViewModel
 ) {
+
     val currentProfile by viewModel.profile.observeAsState()
-    val snackbarError = remember { mutableStateOf("") }
-    val showSnackbar = remember { mutableStateOf(false) }
+
+    val isSaving = remember { mutableStateOf(false) }
+    val isConfirmed = remember { mutableStateOf(false) }
+
+    val showErrorDialog = remember { mutableStateOf(false) }
+    val errorMessage = remember { mutableStateOf<String?>(null) }
+
+    val showConfirmPasswordDialog = remember { mutableStateOf(false) }
+
+    ErrorDialog(
+        showDialog = showErrorDialog.value,
+        errorMessage = errorMessage.value ?: "",
+        onDismissRequest = { showErrorDialog.value = false }
+    )
+
+    fun showSaveAnimation() {
+        viewModel.viewModelScope.launch {
+            isSaving.value = true
+            delay(1500)
+            isConfirmed.value = true
+            delay(1000)
+            isSaving.value = false
+            isConfirmed.value = false
+        }
+    }
 
     Box(
         modifier = Modifier
             .padding(top = 64.dp, bottom = 56.dp)
             .fillMaxSize()
     ) {
-        currentProfile?.let { profile ->
+        SaveConfirmation(isSaving = isSaving.value, isConfirmed = isConfirmed.value) {
+            isSaving.value = false
+            isConfirmed.value = false
+        }
 
-            if (showSnackbar.value) {
-                Snackbar(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                    action = {
-                        TextButton(onClick = { showSnackbar.value = false }) {
-                            Text("Dismiss")
-                        }
-                    },
-                    dismissAction = { showSnackbar.value = false }
-                ) {
-                    Text(snackbarError.value)
-                }
-            }
+        currentProfile?.let { profile ->
 
             val username = remember { mutableStateOf(TextFieldValue(profile.username)) }
             val firstName = remember { mutableStateOf(TextFieldValue(profile.firstName)) }
             val lastName = remember { mutableStateOf(TextFieldValue(profile.lastName)) }
             val description = remember { mutableStateOf(TextFieldValue(profile.description ?: "")) }
-
 
             val currentPassword = remember { mutableStateOf(TextFieldValue("")) }
             val newPassword = remember { mutableStateOf(TextFieldValue("")) }
@@ -99,6 +123,41 @@ fun AppDetailScreen(
             val showLastNameDialog = remember { mutableStateOf(false) }
             val showDescriptionDialog = remember { mutableStateOf(false) }
 
+            ConfirmPasswordDialog(
+                showDialog = showConfirmPasswordDialog.value,
+                onOkClicked = { password ->
+                    showConfirmPasswordDialog.value = false
+                    viewModel.viewModelScope.launch {
+                        val isPasswordCorrect = PasswordUtils.verifyPassword(password, currentProfile!!.password)
+                        if (isPasswordCorrect) {
+                            // Save profile updates
+                            val updatedProfile = Profile(
+                                username = username.value.text,
+                                password = if (newPassword.value.text.isNotEmpty()) {
+                                    PasswordUtils.hashPassword(newPassword.value.text)
+                                } else {
+                                    currentProfile!!.password
+                                },
+                                firstName = firstName.value.text,
+                                lastName = lastName.value.text,
+                                description = description.value.text,
+                                imageUri = currentProfile!!.imageUri,
+                                userId = currentProfile!!.userId
+                            )
+                            currentProfile!!.userId?.let {
+                                viewModel.updateProfile(it, updatedProfile)
+                                viewModel.getProfile(it)
+                            }
+                            showSaveAnimation()
+                        } else {
+                            errorMessage.value = "Incorrect password. Please try again."
+                            showErrorDialog.value = true
+                        }
+                    }
+                },
+                onDismissRequest = { showConfirmPasswordDialog.value = false }
+            )
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -106,6 +165,7 @@ fun AppDetailScreen(
             ) {
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
+
 
                     CustomTextFieldClickable(
                         icon = Icons.Filled.Person,
@@ -124,7 +184,6 @@ fun AppDetailScreen(
                         placeholder = "Enter your username",
                         onDismissRequest = { showUsernameDialog.value = false },
                         onOkClicked = {
-                            // Set the username that was entered in the dialog to the username field
                             username.value = username.value
                             showUsernameDialog.value = false
                         }
@@ -149,7 +208,6 @@ fun AppDetailScreen(
                         placeholder = "Enter your first name",
                         onDismissRequest = { showFirstNameDialog.value = false },
                         onOkClicked = {
-                            // Set the first name that was entered in the dialog to the first name field
                             firstName.value = firstName.value
                             showFirstNameDialog.value = false
                         }
@@ -174,7 +232,6 @@ fun AppDetailScreen(
                         placeholder = "Enter your last name",
                         onDismissRequest = { showLastNameDialog.value = false },
                         onOkClicked = {
-                            // Set the last name that was entered in the dialog to the last name field
                             lastName.value = lastName.value
                             showLastNameDialog.value = false
                         }
@@ -200,7 +257,6 @@ fun AppDetailScreen(
                         placeholder = "Enter your description",
                         onDismissRequest = { showDescriptionDialog.value = false },
                         onOkClicked = {
-                            // Set the description that was entered in the dialog to the description field
                             description.value = description.value
                             showDescriptionDialog.value = false
                         },
@@ -227,7 +283,6 @@ fun AppDetailScreen(
                         placeholder = "Enter your current password",
                         onDismissRequest = { showChangePasswordDialog.value = false },
                         onOkClicked = { newPass ->
-                            // Set the new password value here
                             newPassword.value = newPass
                             showChangePasswordDialog.value = false
                         },
@@ -237,62 +292,30 @@ fun AppDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Button(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        colors =  ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF006BFF),
-                            contentColor = Color.White
-                        ),
-                        onClick = {
-                            // Handle save/update profile logic here
-                            viewModel.viewModelScope.launch {
-                                try {
-                                    // Check if the old password is correct
-                                    val isOldPasswordCorrect = PasswordUtils.verifyPassword(
-                                        currentPassword.value.text,
-                                        profile.password
-                                    )
-
-                                    if (isOldPasswordCorrect) {
-                                        // Update the profile with the new values
-                                        val updatedProfile = Profile(
-                                            username = username.value.text,
-                                            password = if (newPassword.value.text.isNotEmpty()) {
-                                                PasswordUtils.hashPassword(newPassword.value.text)
-                                            } else {
-                                                profile.password
-                                            },
-                                            firstName = firstName.value.text,
-                                            lastName = lastName.value.text,
-                                            description = description.value.text,
-                                            imageUri = profile.imageUri,
-                                            userId = profile.userId
-                                        )
-                                        //print it to the console in red
-
-                                        println("Updated profile: $updatedProfile")
-                                        println("profile.userId: ${profile.userId}")
-
-                                        profile.userId?.let { viewModel.updateProfile(it, updatedProfile) }
+                    Box {
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF006BFF),
+                                contentColor = Color.White
+                            ),
+                            onClick = {
+                                if(currentPassword.value.text.isEmpty() && newPassword.value.text.isEmpty()) {
+                                    showConfirmPasswordDialog.value = true
+                                } else (
+                                    if (PasswordUtils.verifyPassword(currentPassword.value.text, currentProfile!!.password)) {
+                                        showConfirmPasswordDialog.value = true
                                     } else {
-                                        // Show an error message if the old password is incorrect
-                                        // You can use a Snackbar or a Toast to display the error message
-                                        // Show an error message if the old password is incorrect
-                                        snackbarError.value = "Incorrect old password"
-                                        showSnackbar.value = true
+                                        errorMessage.value = "Incorrect password. Please try again."
+                                        showErrorDialog.value = true
                                     }
-                                } catch (e: ProfileRepository.ProfileUpdateError) {
-                                    // Handle profile update error
-                                    snackbarError.value = "Something went wrong while updating the profile"
-                                    showSnackbar.value = true
-                                }
+                                )
                             }
+                        ) {
+                            Text(text = "Save")
                         }
-                    ) {
-                        Text(text = "Save")
                     }
-
                 }
             }
         } ?: run {
@@ -300,6 +323,173 @@ fun AppDetailScreen(
         }
     }
 }
+
+@Composable
+fun ConfirmPasswordDialog(
+    showDialog: Boolean,
+    onOkClicked: (String) -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    if (showDialog) {
+        Dialog(onDismissRequest = onDismissRequest) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Confirm changes",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val password = remember { mutableStateOf(TextFieldValue("")) }
+
+                    CustomTextField(
+                        icon = Icons.Filled.Lock,
+                        value = password.value,
+                        onValueChange = { password.value = it },
+                        label = "Password",
+                        placeholder = "Enter your password",
+                        isPassword = true
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = { onDismissRequest() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon (
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Close"
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                onOkClicked(password.value.text)
+                                      },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon (
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Check"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun ErrorDialog(
+    showDialog: Boolean,
+    errorMessage: String,
+    onDismissRequest: () -> Unit
+) {
+    if (showDialog) {
+        Dialog(onDismissRequest = onDismissRequest) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        text = errorMessage,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Button(
+                        onClick = onDismissRequest,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(text = "Close")
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun SaveConfirmation(
+    isSaving: Boolean,
+    isConfirmed: Boolean,
+    onClick: (Offset) -> Unit
+) {
+    val transition = updateTransition(targetState = isSaving, label = "SaveTransition")
+    val alpha by transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 300) },
+        label = "Alpha"
+    ) { targetState ->
+        if (targetState) 1f else 0f
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .alpha(alpha)
+            .background(Color.Black.copy(alpha = 0.8f))
+            .pointerInput(Unit) {
+                if (isConfirmed) {
+                    detectTapGestures(onTap = onClick)
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedVisibility(
+            visible = isSaving && !isConfirmed,
+            enter = fadeIn(animationSpec = tween(durationMillis = 300)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 300))
+        ) {
+            CircularProgressIndicator()
+        }
+
+        AnimatedVisibility(
+            visible = isConfirmed,
+            enter = fadeIn(animationSpec = tween(durationMillis = 300)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 300))
+        ) {
+            Icon(
+                Icons.Filled.Check,
+                modifier = Modifier.size(48.dp),
+                contentDescription = "Confirmation",
+                tint = Color.Green
+            )
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -483,8 +673,7 @@ fun OverlayDialog(
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(0.dp, top = 56.dp, bottom = 0.dp, end = 0.dp)
-                ,
+                    .padding(0.dp, top = 56.dp, bottom = 0.dp, end = 0.dp),
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {

@@ -74,6 +74,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
         }
     }
 
+
     fun authenticate(username: String, password: String, setLoading: (Boolean) -> Unit) {
         setLoading(true)
         viewModelScope.launch {
