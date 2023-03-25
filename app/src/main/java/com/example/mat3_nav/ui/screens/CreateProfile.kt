@@ -3,8 +3,11 @@ package com.example.mat3_nav.ui.screens
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
-import android.net.Uri
-import android.widget.Toast
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.TextPaint
+import android.text.style.RelativeSizeSpan
+import android.text.style.TypefaceSpan
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -13,8 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,10 +32,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import androidx.core.content.res.ResourcesCompat
 import androidx.navigation.NavController
 import com.example.mat3_nav.R
 import com.example.mat3_nav.ui.theme.quickSand
 import com.example.mat3_nav.viewmodel.MainViewModel
+import es.dmoral.toasty.Toasty
+import kotlinx.coroutines.delay
+
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -42,7 +48,7 @@ fun CreateProfileScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -52,6 +58,15 @@ fun CreateProfileScreen(
         // Navigate to another screen after successful profile creation
         navController.navigate(NavScreens.LoginScreen.route)
     }
+    val keyboardController = LocalFocusManager.current
+    val navigateToLogin = remember { mutableStateOf(false) }
+    if (navigateToLogin.value) {
+        LaunchedEffect(Unit) {
+            delay(50)
+            navController.navigate(NavScreens.LoginScreen.route)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -103,10 +118,10 @@ fun CreateProfileScreen(
             Spacer(modifier = Modifier.height(16.dp))
             CustomTextField2(
                 icon = Icons.Filled.Person,
-                value = username,
-                onValueChange = { username = it },
-                label = "Username",
-                placeholder = "Enter your username"
+                value = email,
+                onValueChange = { email = it },
+                label = "Email",
+                placeholder = "Enter your email"
             )
             Spacer(modifier = Modifier.height(8.dp))
             CustomTextField2(
@@ -139,7 +154,8 @@ fun CreateProfileScreen(
                 value = profileDescription,
                 onValueChange = { profileDescription = it },
                 label = "Profile Description",
-                placeholder = "Enter your profile description"
+                placeholder = "Enter your profile description",
+                isRequired = false
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -149,15 +165,22 @@ fun CreateProfileScreen(
                     containerColor = Color(0xFF006BFF),
                     contentColor = Color.White
                 ),
+
                 onClick = {
-                    // CREATE PROFILE IF INPUT NOT EMPTY
-                    if (firstName.isEmpty() || lastName.isEmpty() || profileDescription.isEmpty()) {
-                        Toast.makeText(
+                    if (firstName.isEmpty() || lastName.isEmpty() || password.isEmpty() || email.isEmpty()) {
+                        Toasty.custom(
                             context,
-                            context.getString(R.string.fields_must_not_be_empty),
-                            Toast.LENGTH_SHORT
+                            getFormattedMessage(context, prefix = "Please fill in all the required fields"),
+                            R.drawable.baseline_error_outline_24,
+                            R.color.createProfileAlert,
+                            2000,
+                            true,
+                            true
                         ).show()
                     } else {
+                        if (profileDescription.isEmpty()) {
+                            profileDescription = "No description"
+                        }
                         val uriString: String
                         if (viewModel.imageUri == null) {
                             uriString = context.getString(R.string.no_gallery_image)
@@ -166,7 +189,7 @@ fun CreateProfileScreen(
                         }
                         viewModel.reset()
                         viewModel.createProfile(
-                            username = username,
+                            email = email,
                             password = password,
                             firstName = firstName,
                             lastName = lastName,
@@ -176,7 +199,8 @@ fun CreateProfileScreen(
                         firstName = ""
                         lastName = ""
                         profileDescription = ""
-                        navController.navigate(NavScreens.LoginScreen.route)
+                        keyboardController.clearFocus()
+                        navigateToLogin.value = !navigateToLogin.value
                     }
                 }
             ) {
@@ -189,7 +213,8 @@ fun CreateProfileScreen(
 
                 TextButton(
                     onClick = {
-                        navController.navigate(NavScreens.LoginScreen.route)
+                        keyboardController.clearFocus()
+                        navigateToLogin.value = !navigateToLogin.value
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -226,6 +251,12 @@ fun CreateProfileScreen(
         }
     }
 }
+
+
+
+
+
+
 
 
 @Composable
@@ -322,6 +353,49 @@ fun PickImageFromGallery(context: Context, viewModel: MainViewModel) {
                 }
             }
         }
+    }
+}
+
+
+fun getFormattedMessage(context: Context, prefix: String): CharSequence {
+//    val prefix = "Please fill in all the required fields"
+    val quicksand = ResourcesCompat.getFont(context, R.font.quicksand_regular)
+    val ssb = SpannableStringBuilder(prefix)
+    val sizeSpan = RelativeSizeSpan(0.8f)
+    ssb.setSpan(
+        sizeSpan,
+        0,
+        prefix.length,
+        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+    )
+    ssb.setSpan(
+        CustomTypefaceSpan("", quicksand!!),
+        0,
+        prefix.length,
+        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+    )
+    return ssb
+}
+
+class CustomTypefaceSpan(family: String, private val newTypeface: Typeface) : TypefaceSpan(family) {
+    override fun updateDrawState(textPaint: TextPaint) {
+        applyCustomTypeFace(textPaint, newTypeface)
+    }
+    override fun updateMeasureState(paint: TextPaint) {
+        applyCustomTypeFace(paint, newTypeface)
+    }
+    private fun applyCustomTypeFace(paint: Paint, tf: Typeface) {
+        val oldStyle: Int
+        val old = paint.typeface
+        oldStyle = old?.style ?: 0
+        val fake = oldStyle and tf.style.inv()
+        if (fake and Typeface.BOLD != 0) {
+            paint.isFakeBoldText = true
+        }
+        if (fake and Typeface.ITALIC != 0) {
+            paint.textSkewX = -0.25f
+        }
+        paint.typeface = tf
     }
 }
 

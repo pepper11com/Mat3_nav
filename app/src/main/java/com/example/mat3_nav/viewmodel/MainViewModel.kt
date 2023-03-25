@@ -75,10 +75,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
     }
 
 
-    fun authenticate(username: String, password: String, setLoading: (Boolean) -> Unit) {
+    fun authenticate(email: String, password: String, setLoading: (Boolean) -> Unit) {
         setLoading(true)
         viewModelScope.launch {
-            val userId = profileRepository.authenticateUser(username, password)
+            val userId = profileRepository.authenticateUser(email, password)
 
             if (userId != null) {
                 _authenticationResult.value = true
@@ -135,11 +135,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
     }
 
     fun createProfile(
-        username: String, password: String, firstName: String, lastName: String,
+        email: String, password: String, firstName: String, lastName: String,
                       description: String, imageUri: String?
     ) {
         // persist data to firestore
-        val profile = Profile(username, password, firstName, lastName, description, imageUri)
+        val profile = Profile(email, password, firstName, lastName, description, imageUri)
 
         viewModelScope.launch {
             try {

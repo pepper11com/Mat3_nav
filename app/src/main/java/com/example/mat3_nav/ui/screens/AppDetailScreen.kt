@@ -1,9 +1,6 @@
 package com.example.mat3_nav.ui.screens
 
-import android.annotation.SuppressLint
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
@@ -14,8 +11,6 @@ import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -34,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,28 +36,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
-import com.example.mat3_nav.BottomDrawer
 import com.example.mat3_nav.model.Profile
-import com.example.mat3_nav.repository.ProfileRepository
 import com.example.mat3_nav.util.PasswordUtils
 import com.example.mat3_nav.viewmodel.MainViewModel
-import com.google.accompanist.insets.navigationBarsWithImePadding
-import com.google.android.material.progressindicator.CircularProgressIndicator
-import com.radusalagean.infobarcompose.InfoBar
-import com.radusalagean.infobarcompose.InfoBarMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppDetailScreen(
     navController: NavController,
@@ -109,7 +93,7 @@ fun AppDetailScreen(
 
         currentProfile?.let { profile ->
 
-            val username = remember { mutableStateOf(TextFieldValue(profile.username)) }
+            val email = remember { mutableStateOf(TextFieldValue(profile.email)) }
             val firstName = remember { mutableStateOf(TextFieldValue(profile.firstName)) }
             val lastName = remember { mutableStateOf(TextFieldValue(profile.lastName)) }
             val description = remember { mutableStateOf(TextFieldValue(profile.description ?: "")) }
@@ -118,7 +102,7 @@ fun AppDetailScreen(
             val newPassword = remember { mutableStateOf(TextFieldValue("")) }
             val showChangePasswordDialog = remember { mutableStateOf(false) }
 
-            val showUsernameDialog = remember { mutableStateOf(false) }
+            val showEmailDialog = remember { mutableStateOf(false) }
             val showFirstNameDialog = remember { mutableStateOf(false) }
             val showLastNameDialog = remember { mutableStateOf(false) }
             val showDescriptionDialog = remember { mutableStateOf(false) }
@@ -132,7 +116,7 @@ fun AppDetailScreen(
                         if (isPasswordCorrect) {
                             // Save profile updates
                             val updatedProfile = Profile(
-                                username = username.value.text,
+                                email = email.value.text,
                                 password = if (newPassword.value.text.isNotEmpty()) {
                                     PasswordUtils.hashPassword(newPassword.value.text)
                                 } else {
@@ -169,23 +153,23 @@ fun AppDetailScreen(
 
                     CustomTextFieldClickable(
                         icon = Icons.Filled.Person,
-                        value = username.value,
-                        onValueChange = { username.value = it },
-                        label = "Username",
-                        placeholder = "Enter your username",
-                        onClick = { showUsernameDialog.value = true }
+                        value = email.value,
+                        onValueChange = { email.value = it },
+                        label = "Email",
+                        placeholder = "Enter your email",
+                        onClick = { showEmailDialog.value = true }
                     )
                     OverlayDialog(
-                        showDialog = showUsernameDialog,
-                        title = "Enter your username",
-                        value = username.value,
-                        onValueChange = { username.value = it },
-                        label = "Username",
-                        placeholder = "Enter your username",
-                        onDismissRequest = { showUsernameDialog.value = false },
+                        showDialog = showEmailDialog,
+                        title = "Enter your email",
+                        value = email.value,
+                        onValueChange = { email.value = it },
+                        label = "Email",
+                        placeholder = "Enter your email",
+                        onDismissRequest = { showEmailDialog.value = false },
                         onOkClicked = {
-                            username.value = username.value
-                            showUsernameDialog.value = false
+                            email.value = email.value
+                            showEmailDialog.value = false
                         }
                     )
 
@@ -311,7 +295,8 @@ fun AppDetailScreen(
                                         showErrorDialog.value = true
                                     }
                                 )
-                            }
+                            },
+                            enabled = currentProfile?.let { isProfileUpdated(it, email.value, firstName.value, lastName.value, description.value, newPassword.value) } ?: false
                         ) {
                             Text(text = "Save")
                         }
@@ -323,6 +308,18 @@ fun AppDetailScreen(
         }
     }
 }
+
+fun isProfileUpdated(
+    profile: Profile,
+    email: TextFieldValue,
+    firstName: TextFieldValue,
+    lastName: TextFieldValue,
+    description: TextFieldValue,
+    newPassword: TextFieldValue
+): Boolean {
+    return profile.email != email.text || profile.firstName != firstName.text || profile.lastName != lastName.text || profile.description != description.text || newPassword.text.isNotEmpty()
+}
+
 
 @Composable
 fun ConfirmPasswordDialog(

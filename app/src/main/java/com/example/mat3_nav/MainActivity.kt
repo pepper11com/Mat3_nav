@@ -88,6 +88,8 @@ class MainActivity : ComponentActivity() {
                     hasUserId.value = false
                     context.clearUserId()
                     println("LaunchedEffect context.getUserId() 2nd " + context.getUserId()) // null - good
+
+                    println("LaunchedEffect hasUserId.value " + hasUserId.value) // false - good
                 }
             }
 
@@ -281,13 +283,14 @@ fun NavBarApp(
                             ) {
                                 IconButton(
                                     onClick = {
-                                        //todo delete the userId from the database
                                         viewModel.userId.value?.let { viewModel.logout(it) }
                                         Handler(Looper.getMainLooper()).postDelayed({
                                             counter.value++
                                         }, 100)
 
-                                        println("DIT IS HET: " + hasCreatedProfile.value)
+                                        Handler(Looper.getMainLooper()).postDelayed({
+                                            println("DIT IS HET: " + hasCreatedProfile.value)
+                                        }, 200)
                                     }
                                 ) {
                                     Icon(

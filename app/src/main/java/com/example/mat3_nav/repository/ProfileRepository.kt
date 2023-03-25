@@ -40,14 +40,14 @@ class ProfileRepository {
                     if (userId == currentUserId) {
                         null
                     } else {
-                        val username = document.getString("username").toString()
+                        val email = document.getString("email").toString()
                         val password = document.getString("password").toString()
                         val firstName = document.getString("firstName").toString()
                         val lastName = document.getString("lastName").toString()
                         val description = document.getString("description").toString()
                         val imageUri = document.getString("imageUri").toString()
 
-                        Profile(username, password, firstName, lastName, description, imageUri)
+                        Profile(email, password, firstName, lastName, description, imageUri)
                     }
                 }
                 _allProfiles.value = profiles
@@ -67,7 +67,7 @@ class ProfileRepository {
                     .get()
                     .await()
 
-                val username = data.getString("username").toString()
+                val email = data.getString("email").toString()
                 val password = data.getString("password").toString()
                 val firstName = data.getString("firstName").toString()
                 val lastName = data.getString("lastName").toString()
@@ -75,7 +75,7 @@ class ProfileRepository {
                 val imageUri = data.getString("imageUri").toString()
                 val userIdCurrent = data.getString("userId").toString()
 
-                _profile.value = Profile(username, password, firstName, lastName, description, imageUri, userIdCurrent)
+                _profile.value = Profile(email, password, firstName, lastName, description, imageUri, userIdCurrent)
             }
         } catch (e: Exception) {
             throw ProfileRetrievalError("Retrieval-firebase-task was unsuccessful")
@@ -100,12 +100,12 @@ class ProfileRepository {
         }
     }
 
-    suspend fun authenticateUser(username: String, password: String): String? {
+    suspend fun authenticateUser(email: String, password: String): String? {
         try {
             return withTimeout(5_000) {
-                // Retrieve the user document by username
+                // Retrieve the user document by email
                 val userQuerySnapshot = profilesCollection
-                    .whereEqualTo("username", username)
+                    .whereEqualTo("email", email)
                     .get()
                     .await()
                 if (userQuerySnapshot.isEmpty) {
