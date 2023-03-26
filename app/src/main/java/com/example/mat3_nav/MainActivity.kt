@@ -647,6 +647,17 @@ private fun NavHostScreen(
                 navController = navController
             )
         }
+
+        composable("password_reset?token={token}") { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token")
+            if (token != null) {
+                PasswordResetScreen(
+                    token
+                )
+            } else {
+                // Handle error or navigate back to home
+            }
+        }
     }
 }
 

@@ -2,6 +2,8 @@ package com.example.mat3_nav.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -17,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.example.mat3_nav.viewmodel.MainViewModel
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Size
@@ -48,6 +50,9 @@ fun LoginScreen(
     onLoginSuccess: (context: Context, userId: String) -> Unit
 ) {
     val context = LocalContext.current
+
+    val showDialog = remember { mutableStateOf(false) }
+    val emailFieldValue = remember { mutableStateOf(TextFieldValue("")) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -75,10 +80,11 @@ fun LoginScreen(
             true -> showLoadingPopup = false
             false -> {
                 showLoadingPopup = false
-                // Move the snackbar code here
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        "Login failed. Please check your email and password."
+                        message = "Login failed. Please check your email and password.",
+                        actionLabel = "Retry", // This is not displayed but required for action handling
+                        duration = SnackbarDuration.Indefinite
                     )
                 }
             }
@@ -88,8 +94,36 @@ fun LoginScreen(
         }
     }
 
+    OverlayDialog(
+        showDialog = showDialog,
+        title = "Forgot Password",
+        value = emailFieldValue.value,
+        onValueChange = { emailFieldValue.value = it },
+        label = "Email",
+        placeholder = "Enter your email",
+        onDismissRequest = { showDialog.value = false },
+        onOkClicked = {
+            showDialog.value = false
+            viewModel.forgotPassword(emailFieldValue.value.text)
+        },
+        aditionalText = "If your email is registered, you will receive an email with instructions to reset your password.",
+    )
+
+
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {  SnackbarHost(
+            hostState = snackbarHostState,
+            snackbar = { data ->
+                CustomSnackbar(
+                    message = "Login failed. Please check your email and password.",
+                    forgotPasswordAction = {
+                        showDialog.value = true
+                    },
+                    onDismiss = { snackbarHostState.currentSnackbarData?.dismiss() }
+                )
+            }
+        )},
         content = {
             Box(modifier = Modifier.fillMaxSize()) {
                 Box(
@@ -257,6 +291,78 @@ fun LoginScreen(
         }
     }
 }
+
+
+
+@Composable
+fun CustomSnackbar(
+    message: String,
+    forgotPasswordAction: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val transition = updateTransition(targetState = message, label = "SnackbarAnimation")
+    val offsetY = transition.animateDp(
+        transitionSpec = { spring(stiffness = 200f) },
+        label = "SnackbarOffset"
+    ) { if (it == message) 0.dp else 80.dp }
+    val alpha = transition.animateFloat(
+        transitionSpec = { spring(stiffness = 200f) },
+        label = "SnackbarAlpha"
+    ) { if (it == message) 1f else 0f }
+
+    AnimatedVisibility(
+        visible = message.isNotEmpty(),
+        modifier = Modifier
+            .offset(y = offsetY.value)
+            .alpha(alpha.value)
+            .fillMaxWidth()
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.error,
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                    modifier = Modifier.widthIn(max = 200.dp)
+                )
+                TextButton(
+                    onClick = forgotPasswordAction,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Text(
+                        "Forgot Password",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Filled.ArrowForward,
+                        contentDescription = "Arrow forward",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        delay(5000) // Change the delay duration as needed
+        onDismiss()
+    }
+}
+
+
 
 
 @Composable

@@ -15,5 +15,7 @@ sealed class NavScreens(
     object CreateProfileScreen : NavScreens("create_profile_screen")
     object LoginScreen : NavScreens("profile_screen")
     object StartScreen : NavScreens("start_screen")
+
+    object PasswordResetScreen : NavScreens("password_reset?token={token}")
 }
 

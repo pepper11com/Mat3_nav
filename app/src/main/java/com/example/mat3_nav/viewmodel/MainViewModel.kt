@@ -12,11 +12,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.mat3_nav.BuildConfig
 import com.example.mat3_nav.model.Profile
 import com.example.mat3_nav.repository.ProfileRepository
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application)  {
+
+    val apiKey = BuildConfig.API_KEY
 
     var scrollPosition = 0
     fun onScrollPositionChanged(position: Int) {
@@ -28,13 +31,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
     private val _previousSelectedUser = mutableStateOf(-1)
     val previousSelectedUser: State<Int> = _previousSelectedUser
 
-    // Other properties and methods
-
     fun setSelectedUser(value: Int) {
         _selectedUser.value = value
     }
-
-
     private val TAG = "FIRESTORE"
     private val profileRepository: ProfileRepository = ProfileRepository()
     var imageUri by mutableStateOf<String?>(null)
@@ -56,7 +55,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
 
     val allProfiles: LiveData<List<Profile>>
         get() = profileRepository.allProfiles
-
     init {
         fetchAllProfiles()
     }
@@ -73,16 +71,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
-
-
     fun authenticate(email: String, password: String, setLoading: (Boolean) -> Unit) {
         setLoading(true)
         viewModelScope.launch {
             val userId = profileRepository.authenticateUser(email, password)
-
             if (userId != null) {
                 _authenticationResult.value = true
-
                 setUserId(userId)
                 getProfile(userId)
                 setLoading(false)
@@ -92,22 +86,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
-
     fun updateProfile(userId: String, updatedProfile: Profile) {
         viewModelScope.launch {
             try {
                 profileRepository.updateProfile(userId, updatedProfile)
             } catch (ex: ProfileRepository.ProfileUpdateError) {
-                // Handle profile update error
-                // You can use a Snackbar or a Toast to display the error message
                 val errorMsg = "Something went wrong while updating the profile"
                 Log.e(TAG, ex.message ?: errorMsg)
             }
         }
     }
-
-
-
     fun getProfile(userId: String) {
         viewModelScope.launch {
             try {
@@ -119,10 +107,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
-
     fun setUserId(userId: String) {
-        _userId.value = userId // This line will update the userId LiveData
-
+        _userId.value = userId
         viewModelScope.launch {
             try {
                 profileRepository.setUserId(userId)
@@ -138,13 +124,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
         email: String, password: String, firstName: String, lastName: String,
                       description: String, imageUri: String?
     ) {
-        // persist data to firestore
         val profile = Profile(email, password, firstName, lastName, description, imageUri)
-
         viewModelScope.launch {
             try {
                 profileRepository.createProfile(profile)
-                println("CreateProfile: $profile")
             } catch (ex: ProfileRepository.ProfileSaveError) {
                 val errorMsg = "Something went wrong while saving the profile"
                 Log.e(TAG, ex.message ?: errorMsg)
@@ -153,12 +136,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
         }
     }
     fun logout(userId1: String) {
-
-        //set the userId to null
         _userId.value = null
-
-        println("USERID:  $userId")
-
         viewModelScope.launch {
             try {
                 profileRepository.logout(userId1)
@@ -169,6 +147,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application)  {
             }
         }
     }
+    fun forgotPassword(email: String) {
+        viewModelScope.launch {
+            val user = profileRepository.findUserByEmail(email)
+            if (user != null) {
+                val subject = "Password Reset"
+                val body = "Please follow the instructions to reset your password."
+               profileRepository.sendEmail(apiKey, user.email, "pepperherman3@gmail.com", subject, body)
+            } else {
+                _errorText.value = "User not found with the provided email."
+            }
+        }
+    }
+
     fun reset() {
         _errorText.value = ""
         profileRepository.reset()

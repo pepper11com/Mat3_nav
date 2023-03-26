@@ -606,6 +606,7 @@ fun OverlayDialog(
     onOkClicked: (TextFieldValue) -> Unit,
     oldPassword: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue("")),
     newPassword: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue("")),
+    aditionalText: String? = null,
 ) {
     val localFocus = LocalFocusManager.current
     val resetFocus = {
@@ -724,6 +725,15 @@ fun OverlayDialog(
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        if (aditionalText != null) {
+                            Text(
+                                text = aditionalText,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
 
                 }

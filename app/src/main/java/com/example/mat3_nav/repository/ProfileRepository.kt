@@ -2,11 +2,23 @@ package com.example.mat3_nav.repository
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.example.mat3_nav.model.Profile
+import com.example.mat3_nav.model.*
 import com.example.mat3_nav.util.PasswordUtils
 import com.google.firebase.firestore.FirebaseFirestore
+import com.sendgrid.*
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
+import com.sendgrid.helpers.mail.Mail
+import com.sendgrid.helpers.mail.objects.Content
+import com.sendgrid.helpers.mail.objects.Email
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import com.sendgrid.Client
+import com.sendgrid.SendGrid
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 
 class ProfileRepository {
     private var firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -25,7 +37,6 @@ class ProfileRepository {
     private val _allProfiles: MutableLiveData<List<Profile>> = MutableLiveData()
     val allProfiles: LiveData<List<Profile>>
         get() = _allProfiles
-
 
     suspend fun getAllProfiles(currentUserId: String) {
         try {
@@ -56,9 +67,63 @@ class ProfileRepository {
             throw ProfileRetrievalError("Retrieval-firebase-task was unsuccessful")
         }
     }
+    suspend fun sendEmail(sendGridApiKey: String, to: String, from: String, subject: String, body: String) {
+        withContext(Dispatchers.IO) {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://api.sendgrid.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
 
+            val sendGridApi = retrofit.create(SendGridApi::class.java)
+            val emailRequest = EmailRequest(
+                personalizations = listOf(
+                    Personalization(
+                        to = listOf(EmailAddress(email = to))
+                    )
+                ),
+                from = EmailAddress(email = from),
+                subject = subject,
+                content = listOf(
+                    Content(
+                        type = "text/plain",
+                        value = body
+                    )
+                )
+            )
 
+            val response = sendGridApi.sendEmail("Bearer $sendGridApiKey", emailRequest).execute()
 
+            if (!response.isSuccessful) {
+                throw Exception("Failed to send email, response code: ${response.code()}")
+            }
+        }
+    }
+    suspend fun findUserByEmail(email: String): Profile? {
+        return try {
+            withTimeout(5_000) {
+                val userQuerySnapshot = profilesCollection
+                    .whereEqualTo("email", email)
+                    .get()
+                    .await()
+
+                if (userQuerySnapshot.isEmpty) {
+                    null
+                } else {
+                    val userDocument = userQuerySnapshot.documents[0]
+
+                    val password = userDocument.getString("password").toString()
+                    val firstName = userDocument.getString("firstName").toString()
+                    val lastName = userDocument.getString("lastName").toString()
+                    val description = userDocument.getString("description").toString()
+                    val imageUri = userDocument.getString("imageUri").toString()
+
+                    Profile(email, password, firstName, lastName, description, imageUri)
+                }
+            }
+        } catch (e: Exception) {
+            throw ProfileRetrievalError("Retrieval-firebase-task was unsuccessful")
+        }
+    }
     suspend fun getProfile(userId: String) {
         try {
             withTimeout(5_000) {
